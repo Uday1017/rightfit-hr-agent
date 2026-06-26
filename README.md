@@ -17,6 +17,7 @@ RightFit replaces manual resume screening with an AI agent that reads, understan
 | Screen | Preview |
 |--------|---------|
 | Landing | ![Landing](screenshots/landing.png) |
+| Register | ![Register](screenshots/register.png) |
 | Resume Screening | ![Screen](screenshots/screen.png) |
 | Candidate Dashboard | ![Dashboard](screenshots/dashboard.png) |
 | Candidate Detail | ![Candidate](screenshots/candidate.png) |
@@ -40,6 +41,9 @@ Click the mic button and speak your question. Browser-native Web Speech API conv
 
 **Persistent Sessions**
 All resumes and chat history are saved to MongoDB. Upload resumes across multiple sessions without losing previous data.
+
+**User Authentication**
+Full signup and login system with JWT-based authentication. Each user gets their own private workspace — resumes, sessions, and chat history are isolated per account. Passwords are hashed with bcrypt and never stored in plain text. Duplicate emails and usernames are rejected at the database level.
 
 ---
 
@@ -137,6 +141,7 @@ cd ../frontend && npm install
 GEMINI_API_KEY=your_key_here
 PORT=5001
 MONGODB_URI=mongodb://localhost:27017/rightfit
+JWT_SECRET=your_jwt_secret_here
 ```
 
 ### 3. Start MongoDB
@@ -162,12 +167,14 @@ Open [http://localhost:5173](http://localhost:5173)
 
 ## Usage
 
-1. Go to **Screen** : paste a job description and upload one or more resumes
-2. Click **Screen Resumes** : AI scores each candidate in seconds
-3. View **Dashboard** : see all candidates ranked by match score
-4. Click any card : see detailed strengths, gaps, skills breakdown
-5. Go to **Chat** : ask anything about candidates or get market salary data
-6. Use the mic button to speak your question instead of typing
+1. **Sign up** : create an account with a unique username and email
+2. **Sign in** : log in to your private workspace
+3. Go to **Screen** : paste a job description and upload one or more resumes
+4. Click **Screen Resumes** : AI scores each candidate in seconds
+5. View **Dashboard** : see all candidates ranked by match score
+6. Click any card : see detailed strengths, gaps, skills breakdown
+7. Go to **Chat** : ask anything about candidates or get market salary data
+8. Use the mic button to speak your question instead of typing
 
 ---
 
