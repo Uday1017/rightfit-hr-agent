@@ -1,55 +1,75 @@
-import { answerFromDocs } from '../services/ragService.js';
-import { searchWeb } from '../services/webSearchService.js';
-import { generate } from '../services/geminiService.js';
+import { generate, generateWithWebSearch } from '../services/geminiService.js';
+import Session from '../models/Session.js';
 
 export async function chat(req, res, next) {
   try {
     const { sessionId, message } = req.body;
     if (!message) return res.status(400).json({ error: 'Message required' });
 
-    const classifyPrompt = `Classify this HR question. Reply with only one word: "docs", "web", or "both".
-"docs" = answer in uploaded resumes or HR documents
-"web" = needs current data like salary benchmarks or market trends
+    console.log(`[Chat] "${message}" — session: ${sessionId}`);
+
+    // Load session from DB
+    let session = await Session.findOne({ sessionId });
+    if (!session) {
+      session = new Session({ sessionId, resumes: [], messages: [] });
+    }
+
+    const docs = session.resumes || [];
+    const hasDocuments = docs.length > 0;
+
+    // Classify question
+    const classifyPrompt = `Reply with only one word — "docs", "web", or "both".
+"docs" = answer is in uploaded resumes
+"web" = needs current market or salary data
 "both" = needs both
 Question: "${message}"`;
 
     const classification = (await generate(classifyPrompt)).trim().toLowerCase();
-    console.log(`[Chat] ${classification} — ${message}`);
+    console.log(`[Chat] Classification: ${classification}, docs: ${docs.length}`);
 
     let answer = '', sources = [], method = '';
 
-    if (classification.includes('web')) {
-      const result = await searchWeb(message);
+    if (!hasDocuments || classification.includes('web')) {
+      const result = await generateWithWebSearch(message);
       answer = result.text;
       sources = result.sources;
       method = 'web_search';
     } else if (classification.includes('both')) {
-      const [ragResult, webResult] = await Promise.all([
-        answerFromDocs(sessionId, message),
-        searchWeb(message)
+      const context = docs.map(d => `=== ${d.filename} ===\n${d.text.slice(0, 1500)}`).join('\n\n');
+      const [docAnswer, webResult] = await Promise.all([
+        generate(`Answer from these resumes:\n${context}\n\nQuestion: ${message}`),
+        generateWithWebSearch(message)
       ]);
-      const combinePrompt = `Combine into one clear answer.
-FROM DOCUMENTS: ${ragResult.answer || 'Not found'}
-FROM WEB: ${webResult.text}
-Question: ${message}`;
-      answer = await generate(combinePrompt);
-      sources = [...(ragResult.sources || []), ...(webResult.sources || [])];
+      answer = await generate(`Combine into one clear answer.\nFROM RESUMES: ${docAnswer}\nFROM WEB: ${webResult.text}\nQuestion: ${message}`);
+      sources = webResult.sources;
       method = 'combined';
     } else {
-      const ragResult = await answerFromDocs(sessionId, message);
-      if (ragResult.foundInDocs) {
-        answer = ragResult.answer;
-        sources = ragResult.sources;
-        method = 'rag';
-      } else {
-        const webResult = await searchWeb(message);
-        answer = webResult.text;
-        sources = webResult.sources;
-        method = 'web_fallback';
-      }
+      const context = docs.map(d => `=== ${d.filename} ===\n${d.text.slice(0, 1500)}`).join('\n\n');
+      answer = await generate(`You are an HR assistant. Answer based ONLY on these resumes:\n${context}\n\nQuestion: ${message}\n\nBe specific with names and details.`);
+      method = 'rag';
     }
 
+    // Save both user message and assistant response to DB
+    session.messages.push({ role: 'user', content: message });
+    session.messages.push({ role: 'assistant', content: answer, sources, method });
+    await session.save();
+
+    console.log(`[Chat] Saved — session now has ${session.messages.length} messages`);
+
     res.json({ answer, sources, method });
+  } catch (err) {
+    console.error('[Chat] Error:', err.message);
+    next(err);
+  }
+}
+
+// Load chat history for a session
+export async function getChatHistory(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const session = await Session.findOne({ sessionId });
+    if (!session) return res.json({ messages: [] });
+    res.json({ messages: session.messages });
   } catch (err) {
     next(err);
   }
