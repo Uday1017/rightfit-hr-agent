@@ -9,25 +9,25 @@ export default function Candidate() {
   const c = candidates[parseInt(id)];
 
   if (!c) return (
-    <div className="flex items-center justify-center min-h-[70vh]">
+    <div className="flex items-center justify-center min-h-[70vh] px-4 text-center">
       <p className="text-gray-400">Candidate not found. <button onClick={() => navigate("/dashboard")} className="text-indigo-400">Go back</button></p>
     </div>
   );
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white text-sm mb-6">← Back</button>
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-5">
-        <div className="flex justify-between items-start">
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div>
-            <h2 className="text-2xl font-bold text-white">{c.name}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-white">{c.name}</h2>
             <p className="text-gray-400 text-sm">{c.filename}</p>
           </div>
-          <span className="bg-indigo-900 text-indigo-300 text-sm px-3 py-1 rounded-full">{c.recommendation}</span>
+          <span className="bg-indigo-900 text-indigo-300 text-sm px-3 py-1 rounded-full self-start">{c.recommendation}</span>
         </div>
         <ScoreBar score={c.score} />
         <p className="text-gray-300 text-sm">{c.summary}</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <h4 className="text-sm font-semibold text-green-400 mb-2">Strengths</h4>
             <ul className="space-y-1">{c.strengths?.map((s, i) => <li key={i} className="text-sm text-gray-300">✓ {s}</li>)}</ul>

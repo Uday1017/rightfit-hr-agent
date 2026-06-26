@@ -1,7 +1,10 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AppProvider } from "./context/AppContext.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Navbar from "./components/Navbar.jsx";
 import Landing from "./pages/Landing.jsx";
+import Login from "./pages/Login.jsx";
+import Signup from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Screen from "./pages/Screen.jsx";
 import Candidate from "./pages/Candidate.jsx";
@@ -14,10 +17,12 @@ export default function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/screen" element={<Screen />} />
-          <Route path="/candidate/:id" element={<Candidate />} />
-          <Route path="/chat" element={<Chat />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/screen" element={<ProtectedRoute><Screen /></ProtectedRoute>} />
+          <Route path="/candidate/:id" element={<ProtectedRoute><Candidate /></ProtectedRoute>} />
+          <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AppProvider>

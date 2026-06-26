@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import resumeRoutes from './routes/resume.js';
 import chatRoutes from './routes/chat.js';
 import jobRoutes from './routes/jobs.js';
+import authRoutes from './routes/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/resumes', resumeRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/jobs', jobRoutes);

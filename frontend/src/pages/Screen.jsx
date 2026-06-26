@@ -25,7 +25,7 @@ export default function Screen() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <h2 className="text-2xl font-bold text-white mb-6">Screen Resumes</h2>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
