@@ -62,7 +62,7 @@ User Question (voice or text)
     ↓
 Gemini 2.5 Flash — classifies: "docs", "web", or "both"
     ↓
-    ├── docs  → search resume texts → Gemini generates answer
+    ├── docs  → Qdrant vector search (filtered by sessionId) → Gemini generates answer
     ├── web   → Gemini Grounding → live Google Search → answer
     └── both  → both pipelines → Gemini synthesizes final answer
 ```
@@ -81,7 +81,8 @@ Gemini 2.5 Flash — classifies: "docs", "web", or "both"
 - Node.js + Express
 - Multer (file uploads)
 - pdf-parse (text extraction)
-- MongoDB + Mongoose (persistent storage)
+- MongoDB + Mongoose (session and chat persistence)
+- Qdrant (vector database — sessionId-filtered semantic search)
 
 **AI — All Gemini**
 - `gemini-2.5-flash` — resume screening, chat, web grounding
@@ -119,6 +120,7 @@ RightFit-HR Agent/
 ### Prerequisites
 - Node.js 18+
 - MongoDB running locally
+- Qdrant running locally (`docker run -p 6333:6333 qdrant/qdrant`)
 - Gemini API key from [aistudio.google.com](https://aistudio.google.com)
 
 ### 1. Clone and install
@@ -142,6 +144,7 @@ GEMINI_API_KEY=your_key_here
 PORT=5001
 MONGODB_URI=mongodb://localhost:27017/rightfit
 JWT_SECRET=your_jwt_secret_here
+QDRANT_URL=http://localhost:6333
 ```
 
 ### 3. Start MongoDB

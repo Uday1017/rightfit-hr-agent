@@ -6,6 +6,17 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 
+export async function getSessionResumes(req, res, next) {
+  try {
+    const session = await Session.findOne({ sessionId: req.params.sessionId });
+    if (!session) return res.json({ resumes: [], jobDescription: '' });
+    res.json({
+      resumes: session.resumes.map(r => ({ id: r.id, filename: r.filename, screening: r.screening })),
+      jobDescription: session.jobDescription || ''
+    });
+  } catch (err) { next(err); }
+}
+
 export async function uploadResumes(req, res, next) {
   try {
     console.log('[Resume] Request received');

@@ -3,7 +3,7 @@ import { searchChunks } from '../utils/vectorStore.js';
 
 export async function answerFromDocs(sessionId, question) {
   const queryEmbedding = await embedText(question);
-  const results = searchChunks(sessionId, queryEmbedding, 5);
+  const results = await searchChunks(sessionId, queryEmbedding, 5);
 
   if (!results.length || results[0].score < 0.4) {
     return { answer: null, foundInDocs: false, sources: [] };

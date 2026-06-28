@@ -8,7 +8,7 @@ export async function embedAndStoreDocument(sessionId, docName, text) {
   console.log(`[Embed] ${chunks.length} chunks for ${docName}`);
   for (const chunk of chunks) {
     const embedding = await embedText(chunk.text);
-    addChunk(sessionId, docName, chunk, embedding);
+    await addChunk(sessionId, docName, chunk, embedding);
     await sleep(300);
   }
   console.log(`[Embed] Done — ${docName}`);

@@ -1,59 +1,55 @@
-import fs from 'fs';
-import path from 'path';
+import { QdrantClient } from '@qdrant/js-client-rest';
+import { v4 as uuidv4 } from 'uuid';
 
-const STORE_PATH = './data/vectorstore.json';
+const COLLECTION = 'resumes';
+const VECTOR_SIZE = 768; // gemini-embedding-001 output dimension
 
-function ensureDir() {
-  const dir = path.dirname(STORE_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
+const client = new QdrantClient({ url: process.env.QDRANT_URL || 'http://localhost:6333' });
 
-function loadStore() {
-  ensureDir();
-  if (!fs.existsSync(STORE_PATH)) return {};
-  try { return JSON.parse(fs.readFileSync(STORE_PATH, 'utf-8')); }
-  catch { return {}; }
-}
-
-function saveStore(store) {
-  ensureDir();
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store), 'utf-8');
-}
-
-function cosineSimilarity(a, b) {
-  let dot = 0, magA = 0, magB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    magA += a[i] * a[i];
-    magB += b[i] * b[i];
+async function ensureCollection() {
+  const { collections } = await client.getCollections();
+  if (!collections.find(c => c.name === COLLECTION)) {
+    await client.createCollection(COLLECTION, {
+      vectors: { size: VECTOR_SIZE, distance: 'Cosine' },
+    });
   }
-  return dot / (Math.sqrt(magA) * Math.sqrt(magB) + 1e-8);
 }
 
-export function addChunk(sessionId, docName, chunk, embedding) {
-  const store = loadStore();
-  if (!store[sessionId]) store[sessionId] = [];
-  store[sessionId].push({ docName, text: chunk.text, chunkId: chunk.id, embedding });
-  saveStore(store);
+export async function addChunk(sessionId, docName, chunk, embedding) {
+  await ensureCollection();
+  await client.upsert(COLLECTION, {
+    points: [{
+      id: uuidv4(),
+      vector: embedding,
+      payload: { sessionId, docName, text: chunk.text, chunkId: chunk.id },
+    }],
+  });
 }
 
-export function searchChunks(sessionId, queryEmbedding, topK = 5) {
-  const store = loadStore();
-  const entries = store[sessionId] || [];
-  return entries
-    .map(e => ({ ...e, score: cosineSimilarity(queryEmbedding, e.embedding) }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, topK);
+export async function searchChunks(sessionId, queryEmbedding, topK = 5) {
+  await ensureCollection();
+  const results = await client.search(COLLECTION, {
+    vector: queryEmbedding,
+    limit: topK,
+    filter: { must: [{ key: 'sessionId', match: { value: sessionId } }] },
+    with_payload: true,
+  });
+  return results.map(r => ({ ...r.payload, score: r.score }));
 }
 
-export function clearSession(sessionId) {
-  const store = loadStore();
-  delete store[sessionId];
-  saveStore(store);
+export async function clearSession(sessionId) {
+  await ensureCollection();
+  await client.delete(COLLECTION, {
+    filter: { must: [{ key: 'sessionId', match: { value: sessionId } }] },
+  });
 }
 
-export function getSessionDocs(sessionId) {
-  const store = loadStore();
-  const entries = store[sessionId] || [];
-  return [...new Set(entries.map(e => e.docName))];
+export async function getSessionDocs(sessionId) {
+  await ensureCollection();
+  const results = await client.scroll(COLLECTION, {
+    filter: { must: [{ key: 'sessionId', match: { value: sessionId } }] },
+    with_payload: ['docName'],
+    limit: 1000,
+  });
+  return [...new Set(results.points.map(p => p.payload.docName))];
 }
