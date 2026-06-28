@@ -1,9 +1,23 @@
+import { useEffect } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import CandidateCard from "../components/CandidateCard.jsx";
 import { Link } from "react-router-dom";
+import { getSessionResumes } from "../services/api.js";
 
 export default function Dashboard() {
-  const { candidates, jobDescription } = useApp();
+  const { candidates, setCandidates, sessionId, jobDescription, setJobDescription } = useApp();
+
+  useEffect(() => {
+    if (candidates.length) return;
+    getSessionResumes(sessionId)
+      .then(res => {
+        if (res.data.resumes.length) {
+          setCandidates(res.data.resumes);
+          if (res.data.jobDescription) setJobDescription(res.data.jobDescription);
+        }
+      })
+      .catch(() => {});
+  }, [sessionId]);
 
   if (!candidates.length) {
     return (

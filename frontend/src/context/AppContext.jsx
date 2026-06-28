@@ -8,7 +8,13 @@ export function AppProvider({ children }) {
     return u ? JSON.parse(u) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem("rf_token") || null);
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId] = useState(() => {
+    const stored = localStorage.getItem("rf_session");
+    if (stored) return stored;
+    const id = crypto.randomUUID();
+    localStorage.setItem("rf_session", id);
+    return id;
+  });
   const [candidates, setCandidates] = useState([]);
   const [jobDescription, setJobDescription] = useState("");
 
@@ -22,8 +28,10 @@ export function AppProvider({ children }) {
   function logout() {
     setUser(null);
     setToken(null);
+    setCandidates([]);
     localStorage.removeItem("rf_user");
     localStorage.removeItem("rf_token");
+    localStorage.removeItem("rf_session");
   }
 
   return (
