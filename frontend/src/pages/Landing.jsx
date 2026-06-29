@@ -38,14 +38,14 @@ export default function Landing() {
       </div>
 
       {/* hero */}
-      <div className="flex flex-col items-center justify-center text-center px-4 pt-24 pb-16">
+      <div className="flex flex-col items-center justify-center text-center px-4 pt-12 pb-8">
         <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase mb-4 border border-indigo-800 px-3 py-1 rounded-full">
           Powered by Gemini AI
         </span>
-        <h1 className="text-4xl sm:text-6xl font-bold text-white mb-5 leading-tight max-w-3xl">
+        <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4 leading-tight max-w-3xl">
           Hire Smarter with <span className="text-indigo-400">RightFit</span>
         </h1>
-        <p className="text-gray-400 text-base sm:text-lg max-w-xl mb-10">
+        <p className="text-gray-400 text-sm sm:text-base max-w-xl mb-7">
           AI-powered resume screening, candidate ranking, and HR chat — all in one place. Replace hours of manual review with seconds of AI analysis.
         </p>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -72,7 +72,7 @@ export default function Landing() {
       </div>
 
       {/* feature cards */}
-      <div className="max-w-5xl mx-auto px-4 pb-20">
+      <div className="max-w-5xl mx-auto px-4 pb-8">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {features.map((f) => (
             <div key={f.title} className="bg-gray-900/70 border border-gray-800 rounded-2xl p-6 hover:border-indigo-700 transition-all">
@@ -85,14 +85,14 @@ export default function Landing() {
       </div>
 
       {/* how it works */}
-      <div className="max-w-4xl mx-auto px-4 pb-24">
-        <h2 className="text-center text-2xl font-bold text-white mb-10">How it works</h2>
+      <div className="max-w-4xl mx-auto px-4 pb-10">
+        <h2 className="text-center text-xl font-bold text-white mb-7">How it works</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative">
           {/* connector line */}
           <div className="hidden sm:block absolute top-7 left-[20%] right-[20%] h-px bg-gradient-to-r from-indigo-800 via-indigo-500 to-indigo-800" />
           {steps.map((s) => (
             <div key={s.number} className="flex flex-col items-center text-center relative">
-              <div className="w-14 h-14 rounded-full bg-indigo-600/20 border border-indigo-700 flex items-center justify-center text-indigo-300 font-bold text-sm mb-4 z-10 bg-gray-950">
+              <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-700 flex items-center justify-center text-indigo-300 font-bold text-sm mb-3 z-10 bg-gray-950">
                 {s.number}
               </div>
               <h3 className="text-white font-semibold mb-1">{s.title}</h3>
