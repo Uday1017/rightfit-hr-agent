@@ -7,7 +7,6 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 export const getModel = () => genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 export const getEmbeddingModel = () => genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
 
-// Retry wrapper — waits and retries on 503
 async function withRetry(fn, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
@@ -16,49 +15,91 @@ async function withRetry(fn, retries = 3) {
       const is503 = err.message?.includes('503') || err.message?.includes('UNAVAILABLE');
       const is429 = err.message?.includes('429') || err.message?.includes('RESOURCE_EXHAUSTED');
       if ((is503 || is429) && i < retries - 1) {
-        const wait = (i + 1) * 8000; // 8s, 16s, 24s
+        const wait = (i + 1) * 8000;
         console.log(`[Gemini] ${is503 ? '503' : '429'} — retrying in ${wait/1000}s... (attempt ${i+1}/${retries})`);
         await new Promise(r => setTimeout(r, wait));
-      } else {
-        throw err;
-      }
+      } else throw err;
     }
   }
 }
 
-export async function generate(prompt) {
+export async function generate(prompt, trace = null, spanName = 'gemini.generate') {
   return withRetry(async () => {
     const model = getModel();
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    const generation = trace?.generation({
+      name: spanName,
+      model: 'gemini-2.5-flash',
+      input: prompt,
+    });
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const usage = result.response.usageMetadata;
+      generation?.end({
+        output: text,
+        usage: {
+          input: usage?.promptTokenCount,
+          output: usage?.candidatesTokenCount,
+          total: usage?.totalTokenCount,
+        },
+      });
+      return text;
+    } catch (err) {
+      generation?.end({ level: 'ERROR', statusMessage: err.message });
+      throw err;
+    }
   });
 }
 
-export async function generateWithWebSearch(prompt) {
+export async function generateWithWebSearch(prompt, trace = null) {
   return withRetry(async () => {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      tools: [{ googleSearch: {} }]
+      tools: [{ googleSearch: {} }],
     });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const sources = [];
+    const generation = trace?.generation({
+      name: 'gemini.webSearch',
+      model: 'gemini-2.5-flash',
+      input: prompt,
+    });
     try {
-      const metadata = result.response.candidates?.[0]?.groundingMetadata;
-      if (metadata?.groundingChunks) {
-        for (const chunk of metadata.groundingChunks) {
-          if (chunk.web) sources.push({ title: chunk.web.title, url: chunk.web.uri });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      const usage = result.response.usageMetadata;
+      const sources = [];
+      try {
+        const metadata = result.response.candidates?.[0]?.groundingMetadata;
+        if (metadata?.groundingChunks) {
+          for (const chunk of metadata.groundingChunks) {
+            if (chunk.web) sources.push({ title: chunk.web.title, url: chunk.web.uri });
+          }
         }
-      }
-    } catch {}
-    return { text, sources };
+      } catch {}
+      generation?.end({
+        output: text,
+        usage: { input: usage?.promptTokenCount, output: usage?.candidatesTokenCount, total: usage?.totalTokenCount },
+        metadata: { sources: sources.length },
+      });
+      return { text, sources };
+    } catch (err) {
+      generation?.end({ level: 'ERROR', statusMessage: err.message });
+      throw err;
+    }
   });
 }
 
-export async function embedText(text) {
+export async function embedText(text, trace = null) {
   return withRetry(async () => {
     const model = getEmbeddingModel();
-    const result = await model.embedContent(text);
-    return result.embedding.values;
+    const span = trace?.span({ name: 'gemini.embed', input: text.slice(0, 200) });
+    try {
+      const result = await model.embedContent(text);
+      const values = result.embedding.values;
+      span?.end({ output: `${values.length}d vector` });
+      return values;
+    } catch (err) {
+      span?.end({ level: 'ERROR', statusMessage: err.message });
+      throw err;
+    }
   });
 }

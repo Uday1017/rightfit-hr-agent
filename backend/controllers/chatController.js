@@ -1,5 +1,6 @@
 import { generate, generateWithWebSearch } from '../services/geminiService.js';
 import Session from '../models/Session.js';
+import { createTrace } from '../utils/langfuse.js';
 
 export async function chat(req, res, next) {
   try {
@@ -7,6 +8,8 @@ export async function chat(req, res, next) {
     if (!message) return res.status(400).json({ error: 'Message required' });
 
     console.log(`[Chat] "${message}" — session: ${sessionId}`);
+
+    const trace = createTrace('chat', { sessionId, userId: req.user?.id, question: message });
 
     // Load session from DB
     let session = await Session.findOne({ sessionId });
@@ -24,28 +27,28 @@ export async function chat(req, res, next) {
 "both" = needs both
 Question: "${message}"`;
 
-    const classification = (await generate(classifyPrompt)).trim().toLowerCase();
+    const classification = (await generate(classifyPrompt, trace, 'chat.classify')).trim().toLowerCase();
     console.log(`[Chat] Classification: ${classification}, docs: ${docs.length}`);
 
     let answer = '', sources = [], method = '';
 
     if (!hasDocuments || classification.includes('web')) {
-      const result = await generateWithWebSearch(message);
+      const result = await generateWithWebSearch(message, trace);
       answer = result.text;
       sources = result.sources;
       method = 'web_search';
     } else if (classification.includes('both')) {
       const context = docs.map(d => `=== ${d.filename} ===\n${d.text.slice(0, 1500)}`).join('\n\n');
       const [docAnswer, webResult] = await Promise.all([
-        generate(`Answer from these resumes:\n${context}\n\nQuestion: ${message}`),
-        generateWithWebSearch(message)
+        generate(`Answer from these resumes:\n${context}\n\nQuestion: ${message}`, trace, 'chat.rag'),
+        generateWithWebSearch(message, trace)
       ]);
-      answer = await generate(`Combine into one clear answer.\nFROM RESUMES: ${docAnswer}\nFROM WEB: ${webResult.text}\nQuestion: ${message}`);
+      answer = await generate(`Combine into one clear answer.\nFROM RESUMES: ${docAnswer}\nFROM WEB: ${webResult.text}\nQuestion: ${message}`, trace, 'chat.combine');
       sources = webResult.sources;
       method = 'combined';
     } else {
       const context = docs.map(d => `=== ${d.filename} ===\n${d.text.slice(0, 1500)}`).join('\n\n');
-      answer = await generate(`You are an HR assistant. Answer based ONLY on these resumes:\n${context}\n\nQuestion: ${message}\n\nBe specific with names and details.`);
+      answer = await generate(`You are an HR assistant. Answer based ONLY on these resumes:\n${context}\n\nQuestion: ${message}\n\nBe specific with names and details.`, trace, 'chat.rag');
       method = 'rag';
     }
 

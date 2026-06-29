@@ -3,6 +3,7 @@ import { generate } from '../services/geminiService.js';
 import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
 import { embedAndStoreDocument } from '../services/embeddingService.js';
+import { createTrace } from '../utils/langfuse.js';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
@@ -43,6 +44,7 @@ export async function uploadResumes(req, res, next) {
     if (!files?.length) return res.status(400).json({ error: 'No files uploaded' });
 
     const sid = sessionId || uuidv4();
+    const trace = createTrace('resume.upload', { sessionId: sid, userId: req.user?.id, files: files.map(f => f.originalname) });
 
     // Load or create session from DB
     let session = await Session.findOne({ sessionId: sid });
@@ -98,7 +100,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
 }`;
 
         try {
-          const raw = await generate(prompt);
+          const raw = await generate(prompt, trace, `screening.${file.originalname}`);
           const cleaned = raw.replace(/```json|```/g, '').trim();
           screening = JSON.parse(cleaned);
           console.log('[Resume] Done:', screening.name, 'Score:', screening.score);
