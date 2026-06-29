@@ -1,19 +1,20 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext.jsx";
+import { FileText, Trophy, MessageSquareText } from "lucide-react";
 
 const features = [
   {
-    icon: "📄",
+    icon: FileText,
     title: "OCR Resume Parsing",
     desc: "Upload any PDF — scanned or digital. Gemini Vision extracts every detail including tables and formatting.",
   },
   {
-    icon: "🏆",
+    icon: Trophy,
     title: "AI Candidate Ranking",
     desc: "Every resume gets a match score out of 100 with strengths, gaps, top skills, and a hire recommendation.",
   },
   {
-    icon: "💬",
+    icon: MessageSquareText,
     title: "HR Chat + Web Search",
     desc: "Ask anything about your candidates. Need salary benchmarks? The agent searches the web automatically.",
   },
@@ -76,7 +77,9 @@ export default function Landing() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {features.map((f) => (
             <div key={f.title} className="bg-gray-900/70 border border-gray-800 rounded-2xl p-6 hover:border-indigo-700 transition-all">
-              <div className="text-3xl mb-3">{f.icon}</div>
+              <div className="w-10 h-10 rounded-lg bg-indigo-600/20 flex items-center justify-center mb-3">
+                <f.icon size={20} className="text-indigo-400" />
+              </div>
               <h3 className="text-white font-semibold mb-2">{f.title}</h3>
               <p className="text-gray-400 text-sm leading-relaxed">{f.desc}</p>
             </div>
