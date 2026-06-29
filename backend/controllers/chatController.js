@@ -109,9 +109,15 @@ export async function chat(req, res, next) {
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
       tools,
+      toolConfig: { functionCallingConfig: { mode: 'AUTO' } },
       systemInstruction: `You are RightFit, an expert HR assistant. You have access to tools to search candidate resumes and the web.
-Always use tools to get accurate information before answering. Be specific with candidate names, scores, and skills.
-If asked about multiple things (e.g. candidate info + market data), call multiple tools in sequence.`
+You MUST use tools to answer questions — never answer from memory alone.
+- Use search_resumes when the question involves candidates, skills, scores, or experience
+- Use search_web when the question needs salary data, market trends, or live information
+- Use get_all_candidates when asked to list or compare all candidates
+- For complex questions, call ALL required tools before writing your final answer. Never say "I will search" — just call the tool immediately.
+- If a question has multiple parts (e.g. candidate fit AND market salary), call search_resumes AND search_web before answering.
+Always base your answer on what the tools return.`
     });
 
     // Build conversation history for context
@@ -127,7 +133,7 @@ If asked about multiple things (e.g. candidate info + market data), call multipl
     let response = await chatSession.sendMessage(message);
     let iterations = 0;
 
-    while (iterations < 5) {
+    while (iterations < 8) {
       const candidate = response.response.candidates?.[0];
       const parts = candidate?.content?.parts || [];
       const toolCallPart = parts.find(p => p.functionCall);
