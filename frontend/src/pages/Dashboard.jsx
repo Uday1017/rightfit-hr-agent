@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import CandidateCard from "../components/CandidateCard.jsx";
 import { Link } from "react-router-dom";
-import { getSessionResumes, getUserSessions, createSession } from "../services/api.js";
+import { getSessionResumes, getUserSessions, createSession, deleteResume } from "../services/api.js";
 
 export default function Dashboard() {
   const { candidates, setCandidates, sessionId, switchSession, sessions, setSessions, jobDescription, setJobDescription } = useApp();
@@ -24,6 +24,11 @@ export default function Dashboard() {
       })
       .catch(() => {});
   }, [sessionId]);
+
+  async function handleDelete(resumeId) {
+    await deleteResume(sessionId, resumeId).catch(() => {});
+    setCandidates(prev => prev.filter(c => c.id !== resumeId));
+  }
 
   async function handleNewSession() {
     const title = prompt("Session name (e.g. Frontend Hiring)") || "Untitled Session";
@@ -67,7 +72,7 @@ export default function Dashboard() {
         <>
           {jobDescription && <p className="text-sm text-gray-400 mb-6 line-clamp-2">Role: {jobDescription}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {candidates.map((c, i) => <CandidateCard key={i} candidate={c} index={i} />)}
+            {candidates.map((c, i) => <CandidateCard key={c.id || i} candidate={c} index={i} onDelete={handleDelete} />)}
           </div>
         </>
       )}

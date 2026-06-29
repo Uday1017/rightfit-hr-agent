@@ -1,29 +1,77 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScoreBar from "./ScoreBar.jsx";
 
-export default function CandidateCard({ candidate, index }) {
+export default function CandidateCard({ candidate, index, onDelete }) {
   const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+
+  function handleDeleteClick(e) {
+    e.stopPropagation();
+    setConfirming(true);
+  }
+
+  function handleCancel(e) {
+    e.stopPropagation();
+    setConfirming(false);
+  }
+
+  function handleConfirm(e) {
+    e.stopPropagation();
+    setConfirming(false);
+    onDelete(candidate.id);
+  }
+
   return (
-    <div
-      className="bg-gray-900 border border-gray-800 rounded-xl p-5 cursor-pointer hover:border-indigo-500 transition-all"
-      onClick={() => navigate(`/candidate/${index}`)}
-    >
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <h3 className="font-semibold text-white">{candidate.name}</h3>
-          <p className="text-xs text-gray-400">{candidate.filename}</p>
+    <>
+      <div
+        className="bg-gray-900 border border-gray-800 rounded-xl p-5 cursor-pointer hover:border-indigo-500 transition-all relative"
+        onClick={() => navigate(`/candidate/${index}`)}
+      >
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="font-semibold text-white">{candidate.name}</h3>
+            <p className="text-xs text-gray-400">{candidate.filename}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-indigo-900 text-indigo-300 px-2 py-1 rounded-full">
+              {candidate.recommendation}
+            </span>
+            <button
+              onClick={handleDeleteClick}
+              className="text-gray-600 hover:text-red-400 transition-colors p-1 rounded"
+              title="Remove candidate"
+            >
+              🗑️
+            </button>
+          </div>
         </div>
-        <span className="text-xs bg-indigo-900 text-indigo-300 px-2 py-1 rounded-full">
-          {candidate.recommendation}
-        </span>
+        <ScoreBar score={candidate.score} />
+        <p className="text-sm text-gray-400 mt-3 line-clamp-2">{candidate.summary}</p>
+        <div className="flex flex-wrap gap-1 mt-3">
+          {candidate.topSkills?.slice(0, 4).map((s) => (
+            <span key={s} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">{s}</span>
+          ))}
+        </div>
       </div>
-      <ScoreBar score={candidate.score} />
-      <p className="text-sm text-gray-400 mt-3 line-clamp-2">{candidate.summary}</p>
-      <div className="flex flex-wrap gap-1 mt-3">
-        {candidate.topSkills?.slice(0, 4).map((s) => (
-          <span key={s} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">{s}</span>
-        ))}
-      </div>
-    </div>
+
+      {confirming && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={handleCancel}>
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
+            <h3 className="text-white font-semibold text-lg mb-2">Remove Candidate</h3>
+            <p className="text-gray-400 text-sm mb-1">You are about to remove <span className="text-white font-medium">{candidate.name}</span>.</p>
+            <p className="text-red-400 text-sm mb-6">⚠️ This action cannot be undone. Their resume, score, and data will be permanently deleted.</p>
+            <div className="flex gap-3">
+              <button onClick={handleCancel} className="flex-1 border border-gray-600 text-gray-300 py-2 rounded-lg hover:border-gray-400 transition-colors">
+                Cancel
+              </button>
+              <button onClick={handleConfirm} className="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 rounded-lg transition-colors">
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

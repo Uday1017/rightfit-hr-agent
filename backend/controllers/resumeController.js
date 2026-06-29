@@ -140,6 +140,17 @@ Return ONLY a valid JSON object, no markdown, no explanation:
   }
 }
 
+export async function deleteResume(req, res, next) {
+  try {
+    const { sessionId, resumeId } = req.params;
+    const session = await Session.findOne({ sessionId, userId: req.user.id });
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    session.resumes = session.resumes.filter(r => r.id !== resumeId);
+    await session.save();
+    res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
 export async function rankCandidates(req, res, next) {
   try {
     const { candidates, jobDescription } = req.body;

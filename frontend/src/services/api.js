@@ -14,6 +14,7 @@ export const uploadResumes = (formData) => api.post("/resumes/upload", formData)
 export const getSessionResumes = (sessionId) => api.get(`/resumes/session/${sessionId}`);
 export const getUserSessions = () => api.get("/resumes/sessions");
 export const createSession = (data) => api.post("/resumes/sessions", data);
+export const deleteResume = (sessionId, resumeId) => api.delete(`/resumes/session/${sessionId}/resume/${resumeId}`);
 export const rankCandidates = (data) => api.post("/resumes/rank", data);
 export const sendChat = (data) => api.post("/chat", data);
 export const getChatHistory = (sessionId) => api.get(`/chat/history/${sessionId}`);
