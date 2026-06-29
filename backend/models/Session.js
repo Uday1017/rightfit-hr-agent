@@ -26,7 +26,8 @@ const messageSchema = new mongoose.Schema({
 
 const sessionSchema = new mongoose.Schema({
   sessionId: { type: String, required: true, unique: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  title: { type: String, default: 'Untitled Session' },
   jobDescription: String,
   resumes: [resumeSchema],
   messages: [messageSchema],

@@ -2,13 +2,30 @@ import { extractTextFromPDF, extractTextFromTxt } from '../services/ocrService.j
 import { generate } from '../services/geminiService.js';
 import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
+import { embedAndStoreDocument } from '../services/embeddingService.js';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 
+export async function getUserSessions(req, res, next) {
+  try {
+    const sessions = await Session.find({ userId: req.user.id }, 'sessionId title jobDescription createdAt').sort({ createdAt: -1 });
+    res.json({ sessions });
+  } catch (err) { next(err); }
+}
+
+export async function createSession(req, res, next) {
+  try {
+    const { title } = req.body;
+    const sessionId = uuidv4();
+    const session = await Session.create({ sessionId, userId: req.user.id, title: title || 'Untitled Session', resumes: [], messages: [] });
+    res.json({ sessionId: session.sessionId, title: session.title });
+  } catch (err) { next(err); }
+}
+
 export async function getSessionResumes(req, res, next) {
   try {
-    const session = await Session.findOne({ sessionId: req.params.sessionId });
+    const session = await Session.findOne({ sessionId: req.params.sessionId, userId: req.user.id });
     if (!session) return res.json({ resumes: [], jobDescription: '' });
     res.json({
       resumes: session.resumes.map(r => ({ id: r.id, filename: r.filename, screening: r.screening })),
@@ -30,7 +47,8 @@ export async function uploadResumes(req, res, next) {
     // Load or create session from DB
     let session = await Session.findOne({ sessionId: sid });
     if (!session) {
-      session = new Session({ sessionId: sid, jobDescription, resumes: [] });
+      const title = jobDescription?.trim().slice(0, 60) || 'Untitled Session';
+      session = new Session({ sessionId: sid, userId: req.user?.id, title, jobDescription, resumes: [] });
     }
 
     const results = [];

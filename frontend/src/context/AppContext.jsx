@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
 
 const AppContext = createContext();
 
@@ -8,13 +8,16 @@ export function AppProvider({ children }) {
     return u ? JSON.parse(u) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem("rf_token") || null);
-  const [sessionId] = useState(() => {
-    const stored = localStorage.getItem("rf_session");
-    if (stored) return stored;
-    const id = crypto.randomUUID();
-    localStorage.setItem("rf_session", id);
-    return id;
+
+  // sessionId stored per user: rf_session_{userId}
+  const [sessionId, setSessionId] = useState(() => {
+    const u = localStorage.getItem("rf_user");
+    if (!u) return null;
+    const { id } = JSON.parse(u);
+    return localStorage.getItem(`rf_session_${id}`) || null;
   });
+
+  const [sessions, setSessions] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [jobDescription, setJobDescription] = useState("");
 
@@ -23,19 +26,36 @@ export function AppProvider({ children }) {
     setToken(jwt);
     localStorage.setItem("rf_user", JSON.stringify(userData));
     localStorage.setItem("rf_token", jwt);
+    // restore last active session for this user
+    const saved = localStorage.getItem(`rf_session_${userData.id}`);
+    setSessionId(saved || null);
   }
 
   function logout() {
     setUser(null);
     setToken(null);
+    setSessionId(null);
     setCandidates([]);
+    setSessions([]);
     localStorage.removeItem("rf_user");
     localStorage.removeItem("rf_token");
-    localStorage.removeItem("rf_session");
+  }
+
+  function switchSession(sid) {
+    setSessionId(sid);
+    setCandidates([]);
+    setJobDescription("");
+    if (user) localStorage.setItem(`rf_session_${user.id}`, sid);
   }
 
   return (
-    <AppContext.Provider value={{ user, token, login, logout, sessionId, candidates, setCandidates, jobDescription, setJobDescription }}>
+    <AppContext.Provider value={{
+      user, token, login, logout,
+      sessionId, switchSession,
+      sessions, setSessions,
+      candidates, setCandidates,
+      jobDescription, setJobDescription
+    }}>
       {children}
     </AppContext.Provider>
   );

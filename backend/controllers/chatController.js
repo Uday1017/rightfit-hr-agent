@@ -11,7 +11,7 @@ export async function chat(req, res, next) {
     // Load session from DB
     let session = await Session.findOne({ sessionId });
     if (!session) {
-      session = new Session({ sessionId, resumes: [], messages: [] });
+      session = new Session({ sessionId, userId: req.user?.id, resumes: [], messages: [] });
     }
 
     const docs = session.resumes || [];

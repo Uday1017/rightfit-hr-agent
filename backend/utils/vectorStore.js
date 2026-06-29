@@ -14,13 +14,13 @@ async function ensureCollection(vectorSize) {
   }
 }
 
-export async function addChunk(sessionId, docName, chunk, embedding) {
+export async function addChunk(sessionId, userId, docName, chunk, embedding) {
   await ensureCollection(embedding.length);
   await client.upsert(COLLECTION, {
     points: [{
       id: uuidv4(),
       vector: embedding,
-      payload: { sessionId, docName, text: chunk.text, chunkId: chunk.id },
+      payload: { sessionId, userId, docName, text: chunk.text, chunkId: chunk.id },
     }],
   });
 }

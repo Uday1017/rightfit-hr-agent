@@ -12,6 +12,8 @@ export const registerUser = (data) => api.post("/auth/register", data);
 export const loginUser = (data) => api.post("/auth/login", data);
 export const uploadResumes = (formData) => api.post("/resumes/upload", formData);
 export const getSessionResumes = (sessionId) => api.get(`/resumes/session/${sessionId}`);
+export const getUserSessions = () => api.get("/resumes/sessions");
+export const createSession = (data) => api.post("/resumes/sessions", data);
 export const rankCandidates = (data) => api.post("/resumes/rank", data);
 export const sendChat = (data) => api.post("/chat", data);
 export const getChatHistory = (sessionId) => api.get(`/chat/history/${sessionId}`);
