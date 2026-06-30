@@ -10,7 +10,7 @@ export default function Signup() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (user) return navigate("/dashboard");
+  if (user) { navigate("/dashboard"); return null; }
 
   async function handleSubmit(e) {
     e.preventDefault();

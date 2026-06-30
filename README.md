@@ -118,25 +118,6 @@ RightFit-HR Agent/
 
 ## Quick Start
 
-### Option A — Docker (recommended)
-
-```bash
-git clone https://github.com/Uday1017/rightfit-hr-agent
-cd rightfit-hr-agent
-
-# Add your keys to a .env file at the root
-echo "GEMINI_API_KEY=your_key_here" > .env
-echo "JWT_SECRET=your_jwt_secret_here" >> .env
-
-docker-compose up
-```
-
-Open [http://localhost](http://localhost) — MongoDB, Qdrant, backend, and frontend all start together.
-
----
-
-### Option B — Manual
-
 ### Prerequisites
 - Node.js 18+
 - MongoDB running locally
