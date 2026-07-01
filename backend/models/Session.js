@@ -4,6 +4,7 @@ const resumeSchema = new mongoose.Schema({
   id: String,
   filename: String,
   text: String,
+  parsed: { type: mongoose.Schema.Types.Mixed, default: null },
   screening: {
     name: String,
     score: Number,

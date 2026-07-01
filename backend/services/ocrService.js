@@ -37,6 +37,37 @@ async function extractWithGeminiVision(buffer) {
   return text;
 }
 
+export async function extractStructuredFromPDF(buffer) {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const prompt = `You are an intelligent document parser. Analyze this resume and extract structured information.
+Return ONLY a valid JSON object with no markdown, no explanation:
+{
+  "name": "",
+  "email": "",
+  "phone": "",
+  "location": "",
+  "summary": "",
+  "skills": [],
+  "experience": [{ "company": "", "role": "", "duration": "", "responsibilities": [] }],
+  "education": [{ "degree": "", "institution": "", "year": "" }],
+  "certifications": [],
+  "languages": []
+}`;
+  try {
+    const result = await model.generateContent([
+      { inlineData: { data: buffer.toString('base64'), mimeType: 'application/pdf' } },
+      prompt
+    ]);
+    const raw = result.response.text().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+    console.log(`[OCR] Structured extraction: ${parsed.name}`);
+    return parsed;
+  } catch (e) {
+    console.log('[OCR] Structured extraction failed:', e.message);
+    return null;
+  }
+}
+
 export function extractTextFromTxt(filePath) {
   return fs.readFileSync(filePath, 'utf-8');
 }

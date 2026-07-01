@@ -1,4 +1,4 @@
-import { extractTextFromPDF, extractTextFromTxt } from '../services/ocrService.js';
+import { extractTextFromPDF, extractTextFromTxt, extractStructuredFromPDF } from '../services/ocrService.js';
 import { generate } from '../services/geminiService.js';
 import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
@@ -60,11 +60,22 @@ export async function uploadResumes(req, res, next) {
       const ext = path.extname(file.originalname).toLowerCase();
 
       let rawText = '';
-      if (ext === '.pdf') rawText = await extractTextFromPDF(file.path);
-      else if (ext === '.txt') rawText = extractTextFromTxt(file.path);
+      let parsed = null;
+      if (ext === '.pdf') {
+        const buffer = fs.readFileSync(file.path);
+        rawText = await extractTextFromPDF(file.path);
+        parsed = await extractStructuredFromPDF(buffer);
+      } else if (ext === '.txt') {
+        rawText = extractTextFromTxt(file.path);
+      }
 
       const text = cleanText(rawText);
       console.log(`[Resume] Extracted ${text.length} chars`);
+
+      // Build richer context for screening using structured data if available
+      const resumeContext = parsed
+        ? `Name: ${parsed.name}\nSummary: ${parsed.summary}\nSkills: ${parsed.skills?.join(', ')}\nExperience: ${parsed.experience?.map(e => `${e.role} at ${e.company} (${e.duration})`).join('; ')}\nEducation: ${parsed.education?.map(e => `${e.degree} from ${e.institution}`).join('; ')}\nCertifications: ${parsed.certifications?.join(', ')}`
+        : text.slice(0, 3000);
 
       let screening = {
         name: file.originalname,
@@ -85,7 +96,7 @@ JOB DESCRIPTION:
 ${jobDescription}
 
 RESUME:
-${text.slice(0, 3000)}
+${resumeContext}
 
 Return ONLY a valid JSON object, no markdown, no explanation:
 {
@@ -111,7 +122,7 @@ Return ONLY a valid JSON object, no markdown, no explanation:
 
       try { fs.unlinkSync(file.path); } catch {}
 
-      const resumeDoc = { id: uuidv4(), filename: file.originalname, text, screening };
+      const resumeDoc = { id: uuidv4(), filename: file.originalname, text, parsed, screening };
 
       // Check if resume already exists in session, update it
       const existingIndex = session.resumes.findIndex(r => r.filename === file.originalname);
