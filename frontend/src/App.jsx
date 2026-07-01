@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Screen from "./pages/Screen.jsx";
 import Candidate from "./pages/Candidate.jsx";
 import Chat from "./pages/Chat.jsx";
+import Analytics from "./pages/Analytics.jsx";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/screen" element={<ProtectedRoute><Screen /></ProtectedRoute>} />
           <Route path="/candidate/:id" element={<ProtectedRoute><Candidate /></ProtectedRoute>} />
           <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AppProvider>

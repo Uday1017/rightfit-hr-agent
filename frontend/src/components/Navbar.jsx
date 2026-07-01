@@ -6,6 +6,7 @@ const links = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/screen", label: "Screen" },
   { to: "/chat", label: "Chat" },
+  { to: "/analytics", label: "Analytics" },
 ];
 
 export default function Navbar() {

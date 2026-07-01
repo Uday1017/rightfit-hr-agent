@@ -24,3 +24,4 @@ export const getPolicyDocs = (sessionId) => api.get(`/policies/docs/${sessionId}
 export const getJobs = () => api.get("/jobs");
 export const createJob = (data) => api.post("/jobs", data);
 export const deleteJob = (id) => api.delete(`/jobs/${id}`);
+export const getAnalytics = () => api.get("/analytics");
