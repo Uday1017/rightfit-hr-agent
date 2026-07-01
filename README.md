@@ -8,7 +8,7 @@
 
 ## What it does
 
-RightFit replaces manual resume screening with an AI agent that reads, understands, and ranks candidates against a job description in seconds. HR teams can then chat with the agent to ask questions about candidates, upload HR policy documents, get live market salary data, schedule interviews, and track hiring analytics — all in one place.
+RightFit replaces manual resume screening with an AI agent that reads, understands, and ranks candidates against a job description in seconds. HR teams can then chat with the agent to ask questions about candidates, upload HR policy documents, get live market salary data, schedule interviews, and track hiring analytics, all in one place.
 
 ---
 
