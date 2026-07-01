@@ -1,11 +1,14 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import ScoreBar from "../components/ScoreBar.jsx";
+import ScheduleModal from "../components/ScheduleModal.jsx";
 
 export default function Candidate() {
   const { id } = useParams();
   const { candidates } = useApp();
   const navigate = useNavigate();
+  const [scheduling, setScheduling] = useState(false);
   const c = candidates[parseInt(id)];
 
   if (!c) return (
@@ -44,7 +47,14 @@ export default function Candidate() {
           </div>
         </div>
         <p className="text-xs text-gray-500">Experience: {c.yearsOfExperience} years</p>
+        <button
+          onClick={() => setScheduling(true)}
+          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-sm font-semibold transition-all"
+        >
+          📅 Schedule Interview
+        </button>
       </div>
+      {scheduling && <ScheduleModal candidate={c} onClose={() => setScheduling(false)} />}
     </div>
   );
 }

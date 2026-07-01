@@ -25,3 +25,5 @@ export const getJobs = () => api.get("/jobs");
 export const createJob = (data) => api.post("/jobs", data);
 export const deleteJob = (id) => api.delete(`/jobs/${id}`);
 export const getAnalytics = () => api.get("/analytics");
+export const generateInterviewEmail = (data) => api.post("/interview/generate-email", data);
+export const sendInterviewEmail = (data) => api.post("/interview/send-email", data);

@@ -8,6 +8,7 @@ import jobRoutes from './routes/jobs.js';
 import authRoutes from './routes/auth.js';
 import policyRoutes from './routes/policy.js';
 import analyticsRoutes from './routes/analytics.js';
+import interviewRoutes from './routes/interview.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -36,6 +37,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/policies', policyRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/interview', interviewRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', model: 'gemini-2.5-flash' }));
 

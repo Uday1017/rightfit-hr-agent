@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ScoreBar from "./ScoreBar.jsx";
+import ScheduleModal from "./ScheduleModal.jsx";
 
 export default function CandidateCard({ candidate, index, onDelete }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
+  const [scheduling, setScheduling] = useState(false);
 
   function handleDeleteClick(e) {
     e.stopPropagation();
@@ -53,6 +55,12 @@ export default function CandidateCard({ candidate, index, onDelete }) {
             <span key={s} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">{s}</span>
           ))}
         </div>
+        <button
+          onClick={e => { e.stopPropagation(); setScheduling(true); }}
+          className="mt-4 w-full bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-700 text-indigo-300 text-xs py-1.5 rounded-lg transition-all"
+        >
+          📅 Schedule Interview
+        </button>
       </div>
 
       {confirming && (
@@ -72,6 +80,7 @@ export default function CandidateCard({ candidate, index, onDelete }) {
           </div>
         </div>
       )}
+      {scheduling && <ScheduleModal candidate={candidate} onClose={() => setScheduling(false)} />}
     </>
   );
 }
