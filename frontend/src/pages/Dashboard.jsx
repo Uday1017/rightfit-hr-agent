@@ -1,11 +1,21 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import CandidateCard from "../components/CandidateCard.jsx";
 import { Link } from "react-router-dom";
-import { getSessionResumes, getUserSessions, createSession, deleteResume } from "../services/api.js";
+import { getSessionResumes, getUserSessions, createSession, deleteResume, renameSession } from "../services/api.js";
 
 export default function Dashboard() {
   const { candidates, setCandidates, sessionId, switchSession, sessions, setSessions, jobDescription, setJobDescription } = useApp();
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  async function handleRename(sid) {
+    const trimmed = renameValue.trim();
+    if (!trimmed) { setRenamingId(null); return; }
+    await renameSession(sid, trimmed).catch(() => {});
+    setSessions(prev => prev.map(s => s.sessionId === sid ? { ...s, title: trimmed } : s));
+    setRenamingId(null);
+  }
 
   useEffect(() => {
     getUserSessions()
@@ -47,16 +57,30 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {sessions.length > 1 && (
+      {sessions.length > 0 && (
         <div className="flex gap-2 flex-wrap mb-6">
           {sessions.map(s => (
-            <button
-              key={s.sessionId}
-              onClick={() => switchSession(s.sessionId)}
-              className={`px-3 py-1 rounded-full text-sm border ${s.sessionId === sessionId ? "bg-indigo-600 border-indigo-600 text-white" : "border-gray-600 text-gray-400 hover:border-indigo-500"}`}
-            >
-              {s.title}
-            </button>
+            <div key={s.sessionId} className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm border transition-all ${
+              s.sessionId === sessionId ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-600 text-gray-400'
+            }`}>
+              {renamingId === s.sessionId ? (
+                <input
+                  autoFocus
+                  className="bg-transparent outline-none text-white w-32 text-sm"
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onBlur={() => handleRename(s.sessionId)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleRename(s.sessionId); if (e.key === 'Escape') setRenamingId(null); }}
+                />
+              ) : (
+                <span className="cursor-pointer" onClick={() => switchSession(s.sessionId)}>{s.title}</span>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); setRenamingId(s.sessionId); setRenameValue(s.title); }}
+                className="ml-1 opacity-50 hover:opacity-100 text-xs"
+                title="Rename session"
+              >✏️</button>
+            </div>
           ))}
         </div>
       )}

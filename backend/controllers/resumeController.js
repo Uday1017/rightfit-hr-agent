@@ -153,6 +153,16 @@ Return ONLY a valid JSON object, no markdown, no explanation:
   }
 }
 
+export async function renameSession(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const { title } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: 'Title required' });
+    await Session.updateOne({ sessionId, userId: req.user.id }, { title: title.trim() });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
 export async function deleteResume(req, res, next) {
   try {
     const { sessionId, resumeId } = req.params;
