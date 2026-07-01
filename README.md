@@ -22,7 +22,9 @@ RightFit replaces manual resume screening with an AI agent that reads, understan
 | Candidate Dashboard | ![Dashboard 1](screenshots/dashboard1.png) |
 | Candidate Dashboard 2 | ![Dashboard 2](screenshots/dashboard2.png) |
 | Candidate Detail | ![Candidate](screenshots/candidate.png) |
-| HR Chat | ![Chat](screenshots/chat.png) |
+| HR Chat | ![Chat](screenshots/Chatupdated.png) |
+| Analytics | ![Analytics 1](screenshots/Analytics1.png) |
+| Analytics 2 | ![Analytics 2](screenshots/Analytics2.png) |
 
 ---
 
