@@ -18,6 +18,8 @@ export const deleteResume = (sessionId, resumeId) => api.delete(`/resumes/sessio
 export const rankCandidates = (data) => api.post("/resumes/rank", data);
 export const sendChat = (data) => api.post("/chat", data);
 export const getChatHistory = (sessionId) => api.get(`/chat/history/${sessionId}`);
+export const uploadPolicy = (formData) => api.post("/policies/upload", formData);
+export const getPolicyDocs = (sessionId) => api.get(`/policies/docs/${sessionId}`);
 export const getJobs = () => api.get("/jobs");
 export const createJob = (data) => api.post("/jobs", data);
 export const deleteJob = (id) => api.delete(`/jobs/${id}`);
