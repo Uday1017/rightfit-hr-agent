@@ -1,6 +1,6 @@
 # RightFit : AI-Powered HR Agent
 
-> An end-to-end intelligent HR agent that screens resumes, ranks candidates, schedules interviews, and answers HR questions using voice or text — powered entirely by Gemini AI.
+> An end to end intelligent HR agent that screens resumes, ranks candidates, schedules interviews, and answers HR questions using voice or text: powered entirely by Gemini AI.
 
 ![Landing](screenshots/landing.png)
 
