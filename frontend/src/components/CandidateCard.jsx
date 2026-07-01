@@ -27,10 +27,9 @@ export default function CandidateCard({ candidate, index, onDelete }) {
   return (
     <>
       <div
-        className="bg-gray-900 border border-gray-800 rounded-xl p-5 cursor-pointer hover:border-indigo-500 transition-all relative"
-        onClick={() => navigate(`/candidate/${index}`)}
+        className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-indigo-500 transition-all relative"
       >
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex justify-between items-start mb-3" onClick={() => navigate(`/candidate/${index}`)} style={{cursor:'pointer'}}>
           <div>
             <h3 className="font-semibold text-white">{candidate.name}</h3>
             <p className="text-xs text-gray-400">{candidate.filename}</p>
@@ -48,18 +47,20 @@ export default function CandidateCard({ candidate, index, onDelete }) {
             </button>
           </div>
         </div>
-        <ScoreBar score={candidate.score} />
-        <p className="text-sm text-gray-400 mt-3 line-clamp-2">{candidate.summary}</p>
-        <div className="flex flex-wrap gap-1 mt-3">
-          {candidate.topSkills?.slice(0, 4).map((s) => (
-            <span key={s} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">{s}</span>
-          ))}
+        <div onClick={() => navigate(`/candidate/${index}`)} style={{cursor:'pointer'}}>
+          <ScoreBar score={candidate.score} />
+          <p className="text-sm text-gray-400 mt-3 line-clamp-2">{candidate.summary}</p>
+          <div className="flex flex-wrap gap-1 mt-3">
+            {candidate.topSkills?.slice(0, 4).map((s) => (
+              <span key={s} className="text-xs bg-gray-800 text-gray-300 px-2 py-0.5 rounded">{s}</span>
+            ))}
+          </div>
         </div>
         <button
-          onClick={e => { e.stopPropagation(); setScheduling(true); }}
+          onClick={() => setScheduling(true)}
           className="mt-4 w-full bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-700 text-indigo-300 text-xs py-1.5 rounded-lg transition-all"
         >
-          📅 Schedule Interview
+          Schedule Interview
         </button>
       </div>
 

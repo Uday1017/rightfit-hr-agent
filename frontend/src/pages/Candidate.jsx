@@ -51,7 +51,7 @@ export default function Candidate() {
           onClick={() => setScheduling(true)}
           className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-sm font-semibold transition-all"
         >
-          📅 Schedule Interview
+          Schedule Interview
         </button>
       </div>
       {scheduling && <ScheduleModal candidate={c} onClose={() => setScheduling(false)} />}

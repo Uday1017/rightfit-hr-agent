@@ -8,7 +8,7 @@ export default function ScheduleModal({ candidate, onClose }) {
     interviewTime: "",
     meetLink: "",
     recruiterName: "",
-    companyName: process.env.COMPANY_NAME || "RightFit",
+    companyName: "RightFit",
   });
   const [subject, setSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
