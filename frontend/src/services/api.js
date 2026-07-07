@@ -11,6 +11,7 @@ api.interceptors.request.use((config) => {
 export const registerUser = (data) => api.post("/auth/register", data);
 export const loginUser = (data) => api.post("/auth/login", data);
 export const uploadResumes = (formData) => api.post("/resumes/upload", formData);
+export const getJobStatus = (jobId) => api.get(`/resumes/job/${jobId}/status`);
 export const getSessionResumes = (sessionId) => api.get(`/resumes/session/${sessionId}`);
 export const getUserSessions = () => api.get("/resumes/sessions");
 export const createSession = (data) => api.post("/resumes/sessions", data);

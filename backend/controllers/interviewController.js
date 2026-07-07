@@ -38,7 +38,7 @@ Return ONLY the email body text, no subject line, no markdown.`;
     const trace = createTrace('interview.generateEmail', { candidateName, role });
     const emailBody = await generate(prompt, trace, 'email.generate');
 
-    const subject = `Interview Invitation — ${role} at ${companyName}`;
+    const subject = `Interview Invitation: ${role} at ${companyName}`;
     res.json({ subject, emailBody });
   } catch (err) { next(err); }
 }

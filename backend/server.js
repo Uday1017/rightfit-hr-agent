@@ -10,6 +10,7 @@ import policyRoutes from './routes/policy.js';
 import analyticsRoutes from './routes/analytics.js';
 import interviewRoutes from './routes/interview.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import './queues/resumeWorker.js'; // start worker in same process
 
 dotenv.config();
 

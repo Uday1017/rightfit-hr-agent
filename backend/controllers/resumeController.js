@@ -1,12 +1,7 @@
-import { extractTextFromPDF, extractTextFromTxt, extractStructuredFromPDF } from '../services/ocrService.js';
 import { generate } from '../services/geminiService.js';
-import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
-import { embedAndStoreDocument } from '../services/embeddingService.js';
-import { createTrace } from '../utils/langfuse.js';
 import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
-import path from 'path';
+import { enqueueResume, resumeQueue } from '../queues/resumeQueue.js';
 
 export async function getUserSessions(req, res, next) {
   try {
@@ -37,118 +32,51 @@ export async function getSessionResumes(req, res, next) {
 
 export async function uploadResumes(req, res, next) {
   try {
-    console.log('[Resume] Request received');
     const { sessionId, jobDescription } = req.body;
     const files = req.files;
-
     if (!files?.length) return res.status(400).json({ error: 'No files uploaded' });
 
     const sid = sessionId || uuidv4();
-    const trace = createTrace('resume.upload', { sessionId: sid, userId: req.user?.id, files: files.map(f => f.originalname) });
 
-    // Load or create session from DB
+    // Ensure session exists in DB
     let session = await Session.findOne({ sessionId: sid });
     if (!session) {
       const title = jobDescription?.trim().slice(0, 60) || 'Untitled Session';
-      session = new Session({ sessionId: sid, userId: req.user?.id, title, jobDescription, resumes: [] });
+      session = await Session.create({ sessionId: sid, userId: req.user?.id, title, jobDescription, resumes: [], messages: [] });
     }
 
-    const results = [];
+    // Enqueue each file as a separate job
+    const jobs = await Promise.all(files.map(file =>
+      enqueueResume({
+        filePath: file.path,
+        originalName: file.originalname,
+        sessionId: sid,
+        userId: req.user?.id,
+        jobDescription,
+      })
+    ));
 
-    for (const file of files) {
-      console.log(`[Resume] Processing: ${file.originalname}`);
-      const ext = path.extname(file.originalname).toLowerCase();
-
-      let rawText = '';
-      let parsed = null;
-      if (ext === '.pdf') {
-        const buffer = fs.readFileSync(file.path);
-        rawText = await extractTextFromPDF(file.path);
-        parsed = await extractStructuredFromPDF(buffer);
-      } else if (ext === '.txt') {
-        rawText = extractTextFromTxt(file.path);
-      }
-
-      const text = cleanText(rawText);
-      console.log(`[Resume] Extracted ${text.length} chars`);
-
-      // Build richer context for screening using structured data if available
-      const resumeContext = parsed
-        ? `Name: ${parsed.name}\nSummary: ${parsed.summary}\nSkills: ${parsed.skills?.join(', ')}\nExperience: ${parsed.experience?.map(e => `${e.role} at ${e.company} (${e.duration})`).join('; ')}\nEducation: ${parsed.education?.map(e => `${e.degree} from ${e.institution}`).join('; ')}\nCertifications: ${parsed.certifications?.join(', ')}`
-        : text.slice(0, 3000);
-
-      let screening = {
-        name: file.originalname,
-        score: 0,
-        summary: 'No job description provided',
-        strengths: [],
-        gaps: [],
-        recommendation: 'Review manually',
-        yearsOfExperience: 0,
-        topSkills: []
-      };
-
-      if (jobDescription?.trim()) {
-        console.log('[Resume] Running screening...');
-        const prompt = `You are an expert HR recruiter. Analyze this resume against the job description.
-
-JOB DESCRIPTION:
-${jobDescription}
-
-RESUME:
-${resumeContext}
-
-Return ONLY a valid JSON object, no markdown, no explanation:
-{
-  "name": "candidate full name or Unknown",
-  "score": 75,
-  "summary": "2 sentence summary of the candidate",
-  "strengths": ["strength 1", "strength 2", "strength 3"],
-  "gaps": ["gap 1", "gap 2"],
-  "recommendation": "Strong hire",
-  "yearsOfExperience": 3,
-  "topSkills": ["skill1", "skill2", "skill3"]
-}`;
-
-        try {
-          const raw = await generate(prompt, trace, `screening.${file.originalname}`);
-          const cleaned = raw.replace(/```json|```/g, '').trim();
-          screening = JSON.parse(cleaned);
-          console.log('[Resume] Done:', screening.name, 'Score:', screening.score);
-        } catch (e) {
-          console.error('[Resume] Parse error:', e.message);
-        }
-      }
-
-      try { fs.unlinkSync(file.path); } catch {}
-
-      const resumeDoc = { id: uuidv4(), filename: file.originalname, text, parsed, screening };
-
-      // Check if resume already exists in session, update it
-      const existingIndex = session.resumes.findIndex(r => r.filename === file.originalname);
-      if (existingIndex >= 0) {
-        session.resumes[existingIndex] = resumeDoc;
-      } else {
-        session.resumes.push(resumeDoc);
-      }
-
-      results.push({ id: resumeDoc.id, filename: file.originalname, screening });
-    }
-
-    await session.save();
-    console.log(`[Resume] Session saved — ${session.resumes.length} total resumes`);
-
-    // Return ALL resumes in session, not just the new ones
-    const allResumes = session.resumes.map(r => ({
-      id: r.id,
-      filename: r.filename,
-      screening: r.screening
-    }));
-
-    res.json({ sessionId: sid, resumes: allResumes });
-
+    console.log(`[Queue] Enqueued ${jobs.length} jobs for session ${sid}`);
+    res.json({ sessionId: sid, jobIds: jobs, total: jobs.length });
   } catch (err) {
     console.error('[Resume] Error:', err.message);
+    next(err);
+  }
+}
+
+export async function getJobStatus(req, res, next) {
+  try {
+    const { jobId } = req.params;
+    const job = await resumeQueue.getJob(jobId);
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+
+    const state = await job.getState();
+    const progress = job.progress || 0;
+    const result = state === 'completed' ? job.returnvalue : null;
+    const failReason = state === 'failed' ? job.failedReason : null;
+
+    res.json({ jobId, state, progress, filename: job.data.originalName, result, failReason });
+  } catch (err) {
     next(err);
   }
 }
