@@ -4,8 +4,12 @@ dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-export const getModel = () => genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-export const getEmbeddingModel = () => genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
+function getClient(apiKey) {
+  return apiKey ? new GoogleGenerativeAI(apiKey) : genAI;
+}
+
+export const getModel = (apiKey) => getClient(apiKey).getGenerativeModel({ model: 'gemini-2.5-flash' });
+export const getEmbeddingModel = (apiKey) => getClient(apiKey).getGenerativeModel({ model: 'gemini-embedding-001' });
 
 async function withRetry(fn, retries = 3) {
   for (let i = 0; i < retries; i++) {
@@ -23,9 +27,9 @@ async function withRetry(fn, retries = 3) {
   }
 }
 
-export async function generate(prompt, trace = null, spanName = 'gemini.generate') {
+export async function generate(prompt, trace = null, spanName = 'gemini.generate', apiKey = null) {
   return withRetry(async () => {
-    const model = getModel();
+    const model = getModel(apiKey);
     const generation = trace?.generation({
       name: spanName,
       model: 'gemini-2.5-flash',
@@ -51,9 +55,9 @@ export async function generate(prompt, trace = null, spanName = 'gemini.generate
   });
 }
 
-export async function generateWithWebSearch(prompt, trace = null) {
+export async function generateWithWebSearch(prompt, trace = null, apiKey = null) {
   return withRetry(async () => {
-    const model = genAI.getGenerativeModel({
+    const model = getClient(apiKey).getGenerativeModel({
       model: 'gemini-2.5-flash',
       tools: [{ googleSearch: {} }],
     });
@@ -88,9 +92,9 @@ export async function generateWithWebSearch(prompt, trace = null) {
   });
 }
 
-export async function embedText(text, trace = null) {
+export async function embedText(text, trace = null, apiKey = null) {
   return withRetry(async () => {
-    const model = getEmbeddingModel();
+    const model = getEmbeddingModel(apiKey);
     const span = trace?.span({ name: 'gemini.embed', input: text.slice(0, 200) });
     try {
       const result = await model.embedContent(text);

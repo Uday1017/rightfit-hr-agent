@@ -61,6 +61,9 @@ Click the mic button and speak your question. Browser-native Web Speech API conv
 **Persistent Data**
 All resumes, chat history, and sessions are saved to MongoDB. Data survives logout and page refresh.
 
+**Job Queue (BullMQ + Redis)**
+Every uploaded resume becomes an independent job in a Redis-backed BullMQ queue. Workers process a maximum of 2 resumes concurrently — OCR and Gemini screening happen in the background. The frontend polls job status every 1.5 seconds and shows a real-time per-file progress bar. Failed jobs are automatically retried up to 3 times with exponential backoff. Uploading 100 resumes will never crash or timeout the server.
+
 **User Authentication**
 JWT based auth with bcrypt password hashing. Each user gets a fully isolated workspace.
 
@@ -110,6 +113,7 @@ Gemini 2.5 Flash: Tool Calling Agent (ReAct loop)
 - pdf-parse (text extraction)
 - Nodemailer (interview email sending)
 - MongoDB + Mongoose (session and chat persistence)
+- BullMQ + Redis (job queue — controlled concurrency, retries, progress tracking)
 - Qdrant (vector database — sessionId-filtered semantic search)
 - Langfuse (LLM observability — traces, tokens, latency)
 
@@ -175,6 +179,7 @@ Open [http://localhost](http://localhost)
 #### Prerequisites
 - Node.js 18+
 - MongoDB running locally
+- Redis running locally (`brew install redis && brew services start redis`)
 - Qdrant running locally (`docker run -p 6333:6333 qdrant/qdrant`)
 - Gemini API key from [aistudio.google.com](https://aistudio.google.com)
 
@@ -196,6 +201,8 @@ GEMINI_API_KEY=your_key_here
 PORT=5001
 MONGODB_URI=mongodb://localhost:27017/rightfit
 JWT_SECRET=your_jwt_secret_here
+REDIS_HOST=localhost
+REDIS_PORT=6379
 QDRANT_URL=http://localhost:6333
 EMAIL_USER=your_gmail@gmail.com
 EMAIL_PASS=your_gmail_app_password

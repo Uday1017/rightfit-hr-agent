@@ -1,4 +1,5 @@
 import { Worker } from 'bullmq';
+import IORedis from 'ioredis';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
@@ -7,13 +8,14 @@ import { generate } from '../services/geminiService.js';
 import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
 
-const connection = {
+const connection = new IORedis({
   host: process.env.REDIS_HOST || 'localhost',
   port: parseInt(process.env.REDIS_PORT || '6379'),
-};
+  maxRetriesPerRequest: null,
+});
 
 export const worker = new Worker('resume-processing', async (job) => {
-  const { filePath, originalName, sessionId, userId, jobDescription } = job.data;
+  const { filePath, originalName, sessionId, userId, jobDescription, geminiApiKey } = job.data;
 
   console.log(`[Worker] Processing: ${originalName} (job ${job.id})`);
   await job.updateProgress(10);
@@ -58,7 +60,7 @@ Return ONLY a valid JSON object, no markdown:
   "topSkills": ["skill1", "skill2", "skill3"]
 }`;
 
-    const raw = await generate(prompt);
+    const raw = await generate(prompt, null, 'screening', geminiApiKey);
     screening = JSON.parse(raw.replace(/```json|```/g, '').trim());
     console.log(`[Worker] Screened: ${screening.name} — ${screening.score}/100`);
   }

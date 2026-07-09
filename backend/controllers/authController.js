@@ -47,3 +47,21 @@ export async function login(req, res, next) {
 export async function me(req, res) {
   res.json({ user: req.user });
 }
+
+export async function saveApiKey(req, res, next) {
+  try {
+    const { geminiApiKey } = req.body;
+    await User.updateOne({ _id: req.user.id }, { geminiApiKey: geminiApiKey || null });
+    res.json({ success: true });
+  } catch (err) { next(err); }
+}
+
+export async function getApiKey(req, res, next) {
+  try {
+    const user = await User.findById(req.user.id).select('geminiApiKey');
+    const key = user?.geminiApiKey || '';
+    // Mask all but last 4 chars
+    const masked = key.length > 4 ? '•'.repeat(key.length - 4) + key.slice(-4) : key;
+    res.json({ hasKey: !!key, maskedKey: masked });
+  } catch (err) { next(err); }
+}

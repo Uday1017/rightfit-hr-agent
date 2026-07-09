@@ -1,5 +1,6 @@
 import { generate } from '../services/geminiService.js';
 import Session from '../models/Session.js';
+import User from '../models/User.js';
 import { v4 as uuidv4 } from 'uuid';
 import { enqueueResume, resumeQueue } from '../queues/resumeQueue.js';
 
@@ -46,6 +47,7 @@ export async function uploadResumes(req, res, next) {
     }
 
     // Enqueue each file as a separate job
+    const user = await User.findById(req.user?.id).select('geminiApiKey');
     const jobs = await Promise.all(files.map(file =>
       enqueueResume({
         filePath: file.path,
@@ -53,6 +55,7 @@ export async function uploadResumes(req, res, next) {
         sessionId: sid,
         userId: req.user?.id,
         jobDescription,
+        geminiApiKey: user?.geminiApiKey || null,
       })
     ));
 
