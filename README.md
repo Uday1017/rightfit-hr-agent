@@ -82,7 +82,7 @@ Every Gemini call is traced: prompt, output, token count, latency, and cost, all
 
 Every Gemini call in RightFit is traced end to end via Langfuse. The dashboard shows real-time visibility into the full AI pipeline, what prompts were sent, what came back, how many tokens were used, how long each call took, and what it cost.
 
-![Langfuse Dashboard](screenshots/langfuse.png)
+![Langfuse Dashboard](screenshots/langfuse.png) (screenshots/langfuse2.png) (screenshots/langfuse3.png)
 
 **What gets traced:**
 
