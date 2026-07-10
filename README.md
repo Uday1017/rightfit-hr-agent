@@ -26,6 +26,7 @@ RightFit replaces manual resume screening with an AI agent that reads, understan
 | HR Chat | ![Chat](screenshots/Chatupdated.png) |
 | Analytics | ![Analytics 1](screenshots/Analytics1.png) |
 | Analytics 2 | ![Analytics 2](screenshots/Analytics2.png) |
+| Langfuse Observability | ![Langfuse](screenshots/langfuse.png) |
 
 ---
 
@@ -64,11 +65,58 @@ All resumes, chat history, and sessions are saved to MongoDB. Data survives logo
 **Job Queue (BullMQ + Redis)**
 Every uploaded resume becomes an independent job in a Redis-backed BullMQ queue. Workers process a maximum of 2 resumes concurrently — OCR and Gemini screening happen in the background. The frontend polls job status every 1.5 seconds and shows a real-time per-file progress bar. Failed jobs are automatically retried up to 3 times with exponential backoff. Uploading 100 resumes will never crash or timeout the server.
 
+**Content Deduplication**
+Each resume is SHA256 hashed after text extraction. If the same resume is uploaded twice across sessions, the cached screening result is returned instantly from Redis — no Gemini call, no re-processing. Cache TTL is 7 days. Same hash, different job description = different cache key, so cross-role reuse is handled correctly.
+
+**Structured Output Enforcement**
+All Gemini screening calls use JSON schema mode — `responseMimeType: application/json` with a typed schema. Gemini is constrained to return valid structured JSON every time. A separate schema validation retry loop (up to 2 retries) catches type mismatches independently of the 503/429 network retry logic.
+
 **User Authentication**
 JWT based auth with bcrypt password hashing. Each user gets a fully isolated workspace.
 
 **LLM Observability with Langfuse**
-Every Gemini call is traced: prompt, output, token count, latency, and cost and also visible in the Langfuse dashboard at `http://localhost:3000`.
+Every Gemini call is traced: prompt, output, token count, latency, and cost, all visible in the Langfuse dashboard.
+
+---
+
+## LLM Observability — Langfuse
+
+Every Gemini call in RightFit is traced end to end via Langfuse. The dashboard shows real-time visibility into the full AI pipeline — what prompts were sent, what came back, how many tokens were used, how long each call took, and what it cost.
+
+![Langfuse Dashboard](screenshots/langfuse.png)
+
+**What gets traced:**
+
+| Trace | What it tracks |
+|---|---|
+| `resume.upload` | OCR extraction + structured screening per resume |
+| `chat.agent` | Full ReAct tool-calling loop — each tool call as a child span |
+| `interview.generate` | Gemini email generation for interview scheduling |
+| `chat` | Direct chat responses (web search or RAG) |
+
+**Why this matters in production:**
+
+Without observability, when an AI system returns a wrong answer or hallucination, you have no way to know what prompt caused it. Langfuse gives you the full trace — the exact prompt that went in, the exact response that came out, token count, latency, and cost — for every single request. You can drill into any trace and see exactly what the model saw and what it returned.
+
+This is how production AI teams debug regressions, monitor prompt quality, and track costs before they spiral.
+
+**Running Langfuse locally:**
+
+```bash
+git clone https://github.com/langfuse/langfuse.git
+cd langfuse
+docker compose up
+```
+
+Open [http://localhost:3000](http://localhost:3000), create a project, copy the keys into `backend/.env`:
+
+```
+LANGFUSE_PUBLIC_KEY=pk-lf-...
+LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_HOST=http://localhost:3000
+```
+
+Langfuse keys are optional — if not set, the app runs normally without tracing.
 
 ---
 
@@ -80,7 +128,10 @@ Resume PDF
 Gemini Vision: Agentic OCR: extracts structured JSON
     { name, email, skills[], experience[], education[] }
     ↓
+SHA256 content hash → Redis cache check (dedup)
+    ↓ cache miss
 Gemini 2.5 Flash: scores candidate against job description
+    (JSON schema mode — guaranteed structured output)
     ↓
 MongoDB: stores structured data + screening results per session
 Qdrant: stores embeddings for semantic search
@@ -93,6 +144,8 @@ Gemini 2.5 Flash: Tool Calling Agent (ReAct loop)
     ├── search_web      → Gemini Grounding → live Google Search → answer
     └── get_all_candidates → structured candidate summary → Gemini answers
     (Gemini chains tools in sequence until it has enough to answer)
+    ↓
+Langfuse: traces every call → prompt, output, tokens, latency, cost
 ```
 
 ---
@@ -115,10 +168,10 @@ Gemini 2.5 Flash: Tool Calling Agent (ReAct loop)
 - MongoDB + Mongoose (session and chat persistence)
 - BullMQ + Redis (job queue — controlled concurrency, retries, progress tracking)
 - Qdrant (vector database — sessionId-filtered semantic search)
-- Langfuse (LLM observability — traces, tokens, latency)
+- Langfuse (LLM observability — traces, tokens, latency, cost)
 
 **AI — All Gemini**
-- `gemini-2.5-flash`: agentic OCR, resume screening, tool-calling chat, web grounding, email generation
+- `gemini-2.5-flash`: agentic OCR, resume screening (JSON schema mode), tool-calling chat, web grounding, email generation
 - `gemini-embedding-001`: document embeddings for RAG
 
 **Infrastructure**
@@ -135,12 +188,13 @@ RightFit-HR Agent/
 ├── backend/
 │   ├── controllers/   # resumeController, chatController, analyticsController,
 │   │                  # interviewController, policyController
+│   ├── queues/        # resumeQueue, resumeWorker (BullMQ)
 │   ├── services/      # geminiService, ocrService, ragService, embeddingService
 │   ├── models/        # Session, User
 │   ├── routes/        # /api/resumes, /api/chat, /api/analytics,
 │   │                  # /api/interview, /api/policies
 │   ├── middleware/    # auth, upload, errorHandler
-│   ├── utils/         # chunker, vectorStore, langfuse, helpers
+│   ├── utils/         # chunker, vectorStore, resumeHashCache, langfuse, helpers
 │   └── server.js
 └── frontend/
     ├── src/
@@ -157,13 +211,12 @@ RightFit-HR Agent/
 
 ## Quick Start
 
-### Option A > Docker (one command)
+### Option A — Docker (one command)
 
 ```bash
 git clone https://github.com/Uday1017/rightfit-hr-agent
 cd rightfit-hr-agent
 
-# create .env at project root
 echo "GEMINI_API_KEY=your_key_here" > .env
 echo "JWT_SECRET=your_jwt_secret_here" >> .env
 
@@ -174,7 +227,7 @@ Open [http://localhost](http://localhost)
 
 ---
 
-### Option B > Manual
+### Option B — Manual
 
 #### Prerequisites
 - Node.js 18+
@@ -248,5 +301,5 @@ Open [http://localhost:5173](http://localhost:5173)
 
 ## Built by
 
-**Uday Gundu** 
+**Uday Gundu**
 [github.com/Uday1017](https://github.com/Uday1017) · udaygundu17@gmail.com
