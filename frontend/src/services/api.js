@@ -20,6 +20,7 @@ export const createSession = (data) => api.post("/resumes/sessions", data);
 export const renameSession = (sessionId, title) => api.patch(`/resumes/sessions/${sessionId}`, { title });
 export const deleteResume = (sessionId, resumeId) => api.delete(`/resumes/session/${sessionId}/resume/${resumeId}`);
 export const rankCandidates = (data) => api.post("/resumes/rank", data);
+export const compareCandidate = (data) => api.post("/resumes/compare", data);
 export const sendChat = (data) => api.post("/chat", data);
 export const getChatHistory = (sessionId) => api.get(`/chat/history/${sessionId}`);
 export const uploadPolicy = (formData) => api.post("/policies/upload", formData);

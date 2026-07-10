@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import ScoreBar from "./ScoreBar.jsx";
 import ScheduleModal from "./ScheduleModal.jsx";
 
-export default function CandidateCard({ candidate, index, onDelete }) {
+export default function CandidateCard({ candidate, index, onDelete, onSelectionChange, isSelected }) {
   const navigate = useNavigate();
   const [confirming, setConfirming] = useState(false);
   const [scheduling, setScheduling] = useState(false);
@@ -24,12 +24,30 @@ export default function CandidateCard({ candidate, index, onDelete }) {
     onDelete(candidate.id);
   }
 
+  function handleCheckboxChange(e) {
+    e.stopPropagation();
+    onSelectionChange?.(candidate.id);
+  }
+
   return (
     <>
       <div
-        className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-indigo-500 transition-all relative"
+        className={`bg-gray-900 border rounded-xl p-5 hover:border-indigo-500 transition-all relative ${
+          isSelected ? 'border-indigo-500 bg-indigo-900/10' : 'border-gray-800'
+        }`}
       >
-        <div className="flex justify-between items-start mb-3" onClick={() => navigate(`/candidate/${index}`)} style={{cursor:'pointer'}}>
+        {/* Selection Checkbox */}
+        <div className="absolute top-3 left-3">
+          <input
+            type="checkbox"
+            checked={isSelected || false}
+            onChange={handleCheckboxChange}
+            className="w-5 h-5 accent-indigo-600 cursor-pointer rounded"
+            title="Select for comparison"
+          />
+        </div>
+
+        <div className="flex justify-between items-start mb-3 pl-8 onClick={() => navigate(`/candidate/${index}`)} style={{cursor:'pointer'}}>
           <div>
             <h3 className="font-semibold text-white">{candidate.name}</h3>
             <p className="text-xs text-gray-400">{candidate.filename}</p>

@@ -127,3 +127,62 @@ Return ONLY a JSON array, no markdown:
     next(err);
   }
 }
+
+export async function compareCandidate(req, res, next) {
+  try {
+    const { candidates, jobDescription } = req.body;
+    if (!candidates?.length || candidates.length < 2) {
+      return res.status(400).json({ error: 'Select 2-3 candidates to compare' });
+    }
+    if (candidates.length > 3) {
+      return res.status(400).json({ error: 'Maximum 3 candidates can be compared' });
+    }
+
+    const candidateDetails = candidates.map((c, i) => `
+CANDIDATE ${i + 1}: ${c.name}
+Score: ${c.score}/100
+Recommendation: ${c.recommendation}
+Summary: ${c.summary}
+Years of Experience: ${c.yearsOfExperience}
+Top Skills: ${c.topSkills?.join(', ')}
+Strengths: ${c.strengths?.join(', ')}
+Gaps: ${c.gaps?.join(', ')}
+`).join('\n---\n');
+
+    const prompt = `You are an expert HR analyst. Compare these ${candidates.length} candidates side-by-side for the following role:
+
+JOB DESCRIPTION:
+${jobDescription || 'Not specified'}
+
+${candidateDetails}
+
+Generate a detailed comparison table in JSON format with the following structure:
+{
+  "comparison": [
+    {
+      "category": "Experience",
+      "candidate1": "...",
+      "candidate2": "...",
+      ${candidates.length > 2 ? '"candidate3": "..."' : ''}
+    },
+    ... (include 6-8 meaningful comparison categories like Skills Match, Growth Potential, Immediate Availability, Technical Depth, Communication, etc.)
+  ],
+  "summary": "A 2-3 sentence overall comparison summary"
+}
+
+Make the comparison insightful, specific to each candidate, and focus on what matters for the role.
+Return ONLY valid JSON, no markdown.`;
+
+    const raw = await generate(prompt);
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const comparison = JSON.parse(cleaned);
+
+    res.json({
+      comparison,
+      candidates: candidates.map(c => ({ name: c.name, score: c.score }))
+    });
+  } catch (err) {
+    console.error('[Compare] Error:', err.message);
+    next(err);
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../context/AppContext.jsx";
 import CandidateCard from "../components/CandidateCard.jsx";
+import ComparisonModal from "../components/ComparisonModal.jsx";
 import { Link } from "react-router-dom";
 import { getSessionResumes, getUserSessions, createSession, deleteResume, renameSession } from "../services/api.js";
 
@@ -10,6 +11,8 @@ export default function Dashboard() {
   const [renameValue, setRenameValue] = useState('');
   const [showNewModal, setShowNewModal] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [selectedForComparison, setSelectedForComparison] = useState([]);
+  const [showComparison, setShowComparison] = useState(false);
 
   useEffect(() => {
     getUserSessions().then(res => setSessions(res.data.sessions)).catch(() => {});
@@ -36,6 +39,7 @@ export default function Dashboard() {
   async function handleDelete(resumeId) {
     await deleteResume(sessionId, resumeId).catch(() => {});
     setCandidates(prev => prev.filter(c => c.id !== resumeId));
+    setSelectedForComparison(prev => prev.filter(id => id !== resumeId));
   }
 
   async function handleNewSession(e) {
@@ -48,6 +52,19 @@ export default function Dashboard() {
     setNewTitle('');
     setShowNewModal(false);
   }
+
+  const handleSelectionChange = (candidateId) => {
+    setSelectedForComparison(prev => {
+      if (prev.includes(candidateId)) {
+        return prev.filter(id => id !== candidateId);
+      } else if (prev.length < 3) {
+        return [...prev, candidateId];
+      }
+      return prev;
+    });
+  };
+
+  const selectedCandidates = candidates.filter(c => selectedForComparison.includes(c.id));
 
   return (
     <>
@@ -97,8 +114,33 @@ export default function Dashboard() {
         ) : (
           <>
             {jobDescription && <p className="text-sm text-gray-400 mb-6 line-clamp-2">Role: {jobDescription}</p>}
+
+            {/* Compare Button */}
+            {selectedCandidates.length >= 2 && (
+              <div className="mb-6 p-4 bg-indigo-900/20 border border-indigo-700/30 rounded-lg flex items-center justify-between">
+                <span className="text-sm text-indigo-300">
+                  {selectedCandidates.length} candidate{selectedCandidates.length !== 1 ? 's' : ''} selected for comparison
+                </span>
+                <button
+                  onClick={() => setShowComparison(true)}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                >
+                  🔍 Compare
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {candidates.map((c, i) => <CandidateCard key={c.id || i} candidate={c} index={i} onDelete={handleDelete} />)}
+              {candidates.map((c, i) => (
+                <CandidateCard
+                  key={c.id || i}
+                  candidate={c}
+                  index={i}
+                  onDelete={handleDelete}
+                  onSelectionChange={handleSelectionChange}
+                  isSelected={selectedForComparison.includes(c.id)}
+                />
+              ))}
             </div>
           </>
         )}
@@ -131,6 +173,15 @@ export default function Dashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Comparison Modal */}
+      {showComparison && (
+        <ComparisonModal
+          candidates={selectedCandidates}
+          jobDescription={jobDescription}
+          onClose={() => setShowComparison(false)}
+        />
       )}
     </>
   );
