@@ -78,7 +78,7 @@ export default function Navbar() {
                   className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg transition-all flex items-center gap-2"
                   title="Set your Gemini API key"
                 >
-                  🔑 {hasKey ? <span className="text-green-400">Key set</span> : "Add API Key"}
+                   {hasKey ? <span className="text-green-400">Key set</span> : "Add API Key"}
                 </button>
                 <span className="text-sm text-gray-400">Hi, <span className="text-white font-medium">{user.username}</span></span>
                 <button onClick={handleLogout} className="text-sm bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg transition-all">
