@@ -1,4 +1,4 @@
-# RightFit : AI-Powered HR Agent
+# RightFit : AI Powered HR Agent
 
 > An end to end intelligent HR agent that screens resumes, ranks candidates, schedules interviews, and answers HR questions using voice or text: powered entirely by Gemini AI.
 
@@ -26,7 +26,6 @@ RightFit replaces manual resume screening with an AI agent that reads, understan
 | HR Chat | ![Chat](screenshots/Chatupdated.png) |
 | Analytics | ![Analytics 1](screenshots/Analytics1.png) |
 | Analytics 2 | ![Analytics 2](screenshots/Analytics2.png) |
-| Langfuse Observability | ![Langfuse](screenshots/langfuse.png) |
 
 ---
 
@@ -40,9 +39,9 @@ Each resume gets a match score out of 100 with strengths, gaps, top skills, year
 
 **Tool-Calling HR Agent (ReAct Loop)**
 The chat is powered by a real agentic loop, not a classifier. Gemini receives 3 tools and decides which to call, in what order, and when it has enough to answer:
-- `search_resumes` : semantic search over uploaded resumes via Qdrant
-- `search_web` : live Google Search via Gemini Grounding
-- `get_all_candidates` : returns structured summary of all candidates in session
+1. `search_resumes` : semantic search over uploaded resumes via Qdrant
+2. `search_web` : live Google Search via Gemini Grounding
+3. `get_all_candidates` : returns structured summary of all candidates in session
 
 **HR Policy Document Upload**
 Upload company handbooks, leave policies, or job descriptions directly in the Chat page. The agent answers from both resumes and policy documents seamlessly in the same conversation.
@@ -79,9 +78,9 @@ Every Gemini call is traced: prompt, output, token count, latency, and cost, all
 
 ---
 
-## LLM Observability — Langfuse
+## LLM Observability: Langfuse
 
-Every Gemini call in RightFit is traced end to end via Langfuse. The dashboard shows real-time visibility into the full AI pipeline — what prompts were sent, what came back, how many tokens were used, how long each call took, and what it cost.
+Every Gemini call in RightFit is traced end to end via Langfuse. The dashboard shows real-time visibility into the full AI pipeline, what prompts were sent, what came back, how many tokens were used, how long each call took, and what it cost.
 
 ![Langfuse Dashboard](screenshots/langfuse.png)
 
@@ -90,13 +89,13 @@ Every Gemini call in RightFit is traced end to end via Langfuse. The dashboard s
 | Trace | What it tracks |
 |---|---|
 | `resume.upload` | OCR extraction + structured screening per resume |
-| `chat.agent` | Full ReAct tool-calling loop — each tool call as a child span |
+| `chat.agent` | Full ReAct tool-calling loop: each tool call as a child span |
 | `interview.generate` | Gemini email generation for interview scheduling |
 | `chat` | Direct chat responses (web search or RAG) |
 
 **Why this matters in production:**
 
-Without observability, when an AI system returns a wrong answer or hallucination, you have no way to know what prompt caused it. Langfuse gives you the full trace — the exact prompt that went in, the exact response that came out, token count, latency, and cost — for every single request. You can drill into any trace and see exactly what the model saw and what it returned.
+Without observability, when an AI system returns a wrong answer or hallucination, you have no way to know what prompt caused it. Langfuse gives you the full trace, the exact prompt that went in, the exact response that came out, token count, latency, and cost, for every single request. You can drill into any trace and see exactly what the model saw and what it returned.
 
 This is how production AI teams debug regressions, monitor prompt quality, and track costs before they spiral.
 
@@ -116,7 +115,7 @@ LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_HOST=http://localhost:3000
 ```
 
-Langfuse keys are optional — if not set, the app runs normally without tracing.
+Langfuse keys are optional, if not set, the app runs normally without tracing.
 
 ---
 
@@ -131,7 +130,7 @@ Gemini Vision: Agentic OCR: extracts structured JSON
 SHA256 content hash → Redis cache check (dedup)
     ↓ cache miss
 Gemini 2.5 Flash: scores candidate against job description
-    (JSON schema mode — guaranteed structured output)
+    (JSON schema mode : guaranteed structured output)
     ↓
 MongoDB: stores structured data + screening results per session
 Qdrant: stores embeddings for semantic search
@@ -158,7 +157,7 @@ Langfuse: traces every call → prompt, output, tokens, latency, cost
 - Recharts (analytics charts)
 - Lucide React (icons)
 - Axios + React Router
-- Web Speech API (voice input — browser native, no API cost)
+- Web Speech API (voice input which is browser native, no API cost)
 
 **Backend**
 - Node.js + Express
@@ -166,9 +165,9 @@ Langfuse: traces every call → prompt, output, tokens, latency, cost
 - pdf-parse (text extraction)
 - Nodemailer (interview email sending)
 - MongoDB + Mongoose (session and chat persistence)
-- BullMQ + Redis (job queue — controlled concurrency, retries, progress tracking)
-- Qdrant (vector database — sessionId-filtered semantic search)
-- Langfuse (LLM observability — traces, tokens, latency, cost)
+- BullMQ + Redis (job queue: controlled concurrency, retries, progress tracking)
+- Qdrant (vector database: sessionId-filtered semantic search)
+- Langfuse (LLM observability: traces, tokens, latency, cost)
 
 **AI — All Gemini**
 - `gemini-2.5-flash`: agentic OCR, resume screening (JSON schema mode), tool-calling chat, web grounding, email generation
@@ -227,7 +226,7 @@ Open [http://localhost](http://localhost)
 
 ---
 
-### Option B — Manual
+### Option B: Manual
 
 #### Prerequisites
 - Node.js 18+
