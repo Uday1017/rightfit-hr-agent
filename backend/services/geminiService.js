@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import { fireWithBreaker } from './circuitBreaker.js';
 dotenv.config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -28,30 +29,32 @@ async function withRetry(fn, retries = 3) {
 }
 
 export async function generate(prompt, trace = null, spanName = 'gemini.generate', apiKey = null) {
-  return withRetry(async () => {
-    const model = getModel(apiKey);
-    const generation = trace?.generation({
-      name: spanName,
-      model: 'gemini-2.5-flash',
-      input: prompt,
-    });
-    try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const usage = result.response.usageMetadata;
-      generation?.end({
-        output: text,
-        usage: {
-          input: usage?.promptTokenCount,
-          output: usage?.candidatesTokenCount,
-          total: usage?.totalTokenCount,
-        },
+  return fireWithBreaker(async () => {
+    return withRetry(async () => {
+      const model = getModel(apiKey);
+      const generation = trace?.generation({
+        name: spanName,
+        model: 'gemini-2.5-flash',
+        input: prompt,
       });
-      return text;
-    } catch (err) {
-      generation?.end({ level: 'ERROR', statusMessage: err.message });
-      throw err;
-    }
+      try {
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const usage = result.response.usageMetadata;
+        generation?.end({
+          output: text,
+          usage: {
+            input: usage?.promptTokenCount,
+            output: usage?.candidatesTokenCount,
+            total: usage?.totalTokenCount,
+          },
+        });
+        return text;
+      } catch (err) {
+        generation?.end({ level: 'ERROR', statusMessage: err.message });
+        throw err;
+      }
+    });
   });
 }
 
@@ -76,11 +79,12 @@ function validateScreening(obj) {
 /**
  * Call Gemini with structured JSON output enforced via responseMimeType + responseSchema.
  * Includes a separate schema-validation retry loop (up to 2 retries) distinct from
- * the 503/429 retry logic in withRetry().
+ * the 503/429 retry logic in withRetry(). Already wrapped by circuit breaker via generate().
  *
  * @param {string} prompt
  * @param {object} schema  - Gemini responseSchema object
  * @param {string|null} apiKey
+ * @param {object|null} trace - Langfuse trace
  * @returns {Promise<object>} Parsed, validated JSON object
  */
 export async function generateStructured(prompt, schema, apiKey = null, trace = null) {
@@ -130,59 +134,62 @@ export async function generateStructured(prompt, schema, apiKey = null, trace = 
     if (attempt === MAX_VALIDATION_RETRIES) {
       throw new Error(`Structured output failed validation after ${MAX_VALIDATION_RETRIES + 1} attempts: ${errors.join('; ')}`);
     }
-    // Loop to retry — Gemini re-generates against the schema
   }
 }
 
 export async function generateWithWebSearch(prompt, trace = null, apiKey = null) {
-  return withRetry(async () => {
-    const model = getClient(apiKey).getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      tools: [{ googleSearch: {} }],
-    });
-    const generation = trace?.generation({
-      name: 'gemini.webSearch',
-      model: 'gemini-2.5-flash',
-      input: prompt,
-    });
-    try {
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
-      const usage = result.response.usageMetadata;
-      const sources = [];
-      try {
-        const metadata = result.response.candidates?.[0]?.groundingMetadata;
-        if (metadata?.groundingChunks) {
-          for (const chunk of metadata.groundingChunks) {
-            if (chunk.web) sources.push({ title: chunk.web.title, url: chunk.web.uri });
-          }
-        }
-      } catch {}
-      generation?.end({
-        output: text,
-        usage: { input: usage?.promptTokenCount, output: usage?.candidatesTokenCount, total: usage?.totalTokenCount },
-        metadata: { sources: sources.length },
+  return fireWithBreaker(async () => {
+    return withRetry(async () => {
+      const model = getClient(apiKey).getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        tools: [{ googleSearch: {} }],
       });
-      return { text, sources };
-    } catch (err) {
-      generation?.end({ level: 'ERROR', statusMessage: err.message });
-      throw err;
-    }
+      const generation = trace?.generation({
+        name: 'gemini.webSearch',
+        model: 'gemini-2.5-flash',
+        input: prompt,
+      });
+      try {
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const usage = result.response.usageMetadata;
+        const sources = [];
+        try {
+          const metadata = result.response.candidates?.[0]?.groundingMetadata;
+          if (metadata?.groundingChunks) {
+            for (const chunk of metadata.groundingChunks) {
+              if (chunk.web) sources.push({ title: chunk.web.title, url: chunk.web.uri });
+            }
+          }
+        } catch {}
+        generation?.end({
+          output: text,
+          usage: { input: usage?.promptTokenCount, output: usage?.candidatesTokenCount, total: usage?.totalTokenCount },
+          metadata: { sources: sources.length },
+        });
+        return { text, sources };
+      } catch (err) {
+        generation?.end({ level: 'ERROR', statusMessage: err.message });
+        throw err;
+      }
+    });
   });
 }
 
 export async function embedText(text, trace = null, apiKey = null) {
-  return withRetry(async () => {
-    const model = getEmbeddingModel(apiKey);
-    const span = trace?.span({ name: 'gemini.embed', input: text.slice(0, 200) });
-    try {
-      const result = await model.embedContent(text);
-      const values = result.embedding.values;
-      span?.end({ output: `${values.length}d vector` });
-      return values;
-    } catch (err) {
-      span?.end({ level: 'ERROR', statusMessage: err.message });
-      throw err;
-    }
+  return fireWithBreaker(async () => {
+    return withRetry(async () => {
+      const model = getEmbeddingModel(apiKey);
+      const span = trace?.span({ name: 'gemini.embed', input: text.slice(0, 200) });
+      try {
+        const result = await model.embedContent(text);
+        const values = result.embedding.values;
+        span?.end({ output: `${values.length}d vector` });
+        return values;
+      } catch (err) {
+        span?.end({ level: 'ERROR', statusMessage: err.message });
+        throw err;
+      }
+    });
   });
 }

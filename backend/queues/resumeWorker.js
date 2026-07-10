@@ -106,22 +106,29 @@ ${text.slice(0, 3000)}
 
 Evaluate the candidate and return a structured screening result.`;
 
-    // Pass trace so token counts are recorded in Langfuse
-    screening = await generateStructured(prompt, screeningSchema, geminiApiKey, trace);
-    console.log(`[Worker] Screened: ${screening.name} — ${screening.score}/100`);
+    try {
+      screening = await generateStructured(prompt, screeningSchema, geminiApiKey, trace);
+      console.log(`[Worker] Screened: ${screening.name} — ${screening.score}/100`);
 
-    // Update trace with final screening outcome
-    trace.update({
-      metadata: {
-        dedupHit: false,
-        contentHash,
-        candidateName: screening.name,
-        score: screening.score,
-        recommendation: screening.recommendation,
-      },
-    });
+      // Update trace with final screening outcome
+      trace.update({
+        metadata: {
+          dedupHit: false,
+          contentHash,
+          candidateName: screening.name,
+          score: screening.score,
+          recommendation: screening.recommendation,
+        },
+      });
 
-    await setCachedScreening(contentHash, jobDescription, screening);
+      await setCachedScreening(contentHash, jobDescription, screening);
+    } catch (err) {
+      if (err.message?.includes('Breaker is open')) {
+        console.error(`[Worker] Circuit breaker open — AI service temporarily unavailable`);
+        throw new Error('CIRCUIT_OPEN: AI service temporarily unavailable, job will retry when service recovers');
+      }
+      throw err;
+    }
   }
 
   await job.updateProgress(80);

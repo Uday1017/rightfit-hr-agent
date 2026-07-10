@@ -143,18 +143,29 @@ Always base your answer on what the tools return.`
       const { name, args } = toolCallPart.functionCall;
       console.log(`[Agent] Tool call: ${name}`, args);
 
-      const toolResult = await executeTool(name, args, sessionDocs, sessionId, trace);
+      try {
+        const toolResult = await executeTool(name, args, sessionDocs, sessionId, trace);
 
-      // If web search, collect sources
-      if (name === 'search_web' && toolResult.includes('Sources:')) {
-        const srcLine = toolResult.split('Sources:')[1]?.trim();
-        if (srcLine) allSources.push(...srcLine.split(', ').map(url => ({ url, title: url })));
+        // If web search, collect sources
+        if (name === 'search_web' && toolResult.includes('Sources:')) {
+          const srcLine = toolResult.split('Sources:')[1]?.trim();
+          if (srcLine) allSources.push(...srcLine.split(', ').map(url => ({ url, title: url })));
+        }
+
+        // Feed tool result back to Gemini
+        response = await chatSession.sendMessage([{
+          functionResponse: { name, response: { result: toolResult } }
+        }]);
+      } catch (err) {
+        if (err.message?.includes('Breaker is open')) {
+          console.error('[Agent] Circuit breaker open during tool execution');
+          return res.status(503).json({
+            error: 'AI service temporarily unavailable',
+            message: 'The AI service is recovering from recent issues. Please try again in a moment.'
+          });
+        }
+        throw err;
       }
-
-      // Feed tool result back to Gemini
-      response = await chatSession.sendMessage([{
-        functionResponse: { name, response: { result: toolResult } }
-      }]);
 
       iterations++;
     }
@@ -172,6 +183,14 @@ Always base your answer on what the tools return.`
     res.json({ answer, sources: allSources, method });
 
   } catch (err) {
+    // Catch circuit breaker open at the top level too
+    if (err.message?.includes('Breaker is open')) {
+      console.error('[Agent] Circuit breaker open');
+      return res.status(503).json({
+        error: 'AI service temporarily unavailable',
+        message: 'The AI service is recovering from recent issues. Please try again in a moment.'
+      });
+    }
     console.error('[Agent] Error:', err.message);
     next(err);
   }
