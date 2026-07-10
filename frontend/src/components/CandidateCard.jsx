@@ -47,7 +47,7 @@ export default function CandidateCard({ candidate, index, onDelete, onSelectionC
           />
         </div>
 
-        <div className="flex justify-between items-start mb-3 pl-8 onClick={() => navigate(`/candidate/${index}`)} style={{cursor:'pointer'}}>
+        <div className="flex justify-between items-start mb-3 pl-8" onClick={() => navigate(`/candidate/${index}`)} style={{cursor:'pointer'}}>
           <div>
             <h3 className="font-semibold text-white">{candidate.name}</h3>
             <p className="text-xs text-gray-400">{candidate.filename}</p>
