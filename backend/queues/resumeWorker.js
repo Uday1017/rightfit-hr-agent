@@ -8,6 +8,7 @@ import { generateStructured } from '../services/geminiService.js';
 import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
 import { hashResumeText, getCachedScreening, setCachedScreening } from '../utils/resumeHashCache.js';
+import { createTrace } from '../utils/langfuse.js';
 
 // Gemini responseSchema — enforces structured output without regex cleaning
 const screeningSchema = {
@@ -37,6 +38,14 @@ export const worker = new Worker('resume-processing', async (job) => {
   console.log(`[Worker] Processing: ${originalName} (job ${job.id})`);
   await job.updateProgress(10);
 
+  // One Langfuse trace per resume job — captures the full screening pipeline
+  const trace = createTrace('resume.screening', {
+    jobId: job.id,
+    filename: originalName,
+    sessionId,
+    userId,
+  });
+
   const ext = path.extname(originalName).toLowerCase();
   const rawText = ext === '.pdf'
     ? await extractTextFromPDF(filePath)
@@ -53,6 +62,8 @@ export const worker = new Worker('resume-processing', async (job) => {
   const cachedScreening = await getCachedScreening(contentHash, jobDescription);
   if (cachedScreening) {
     console.log(`[Worker] DEDUP HIT — reusing cached screening for ${originalName}`);
+    trace.update({ metadata: { dedupHit: true, contentHash } });
+
     await job.updateProgress(80);
 
     let session = await Session.findOne({ sessionId });
@@ -95,8 +106,21 @@ ${text.slice(0, 3000)}
 
 Evaluate the candidate and return a structured screening result.`;
 
-    screening = await generateStructured(prompt, screeningSchema, geminiApiKey);
+    // Pass trace so token counts are recorded in Langfuse
+    screening = await generateStructured(prompt, screeningSchema, geminiApiKey, trace);
     console.log(`[Worker] Screened: ${screening.name} — ${screening.score}/100`);
+
+    // Update trace with final screening outcome
+    trace.update({
+      metadata: {
+        dedupHit: false,
+        contentHash,
+        candidateName: screening.name,
+        score: screening.score,
+        recommendation: screening.recommendation,
+      },
+    });
+
     await setCachedScreening(contentHash, jobDescription, screening);
   }
 

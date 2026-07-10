@@ -83,7 +83,7 @@ function validateScreening(obj) {
  * @param {string|null} apiKey
  * @returns {Promise<object>} Parsed, validated JSON object
  */
-export async function generateStructured(prompt, schema, apiKey = null) {
+export async function generateStructured(prompt, schema, apiKey = null, trace = null) {
   const MAX_VALIDATION_RETRIES = 2;
 
   for (let attempt = 0; attempt <= MAX_VALIDATION_RETRIES; attempt++) {
@@ -96,8 +96,31 @@ export async function generateStructured(prompt, schema, apiKey = null) {
           responseSchema: schema,
         },
       });
-      const response = await model.generateContent(prompt);
-      return JSON.parse(response.response.text());
+
+      const generation = trace?.generation({
+        name: 'gemini.structured',
+        model: 'gemini-2.5-flash',
+        input: prompt,
+        metadata: { attempt: attempt + 1 },
+      });
+
+      try {
+        const response = await model.generateContent(prompt);
+        const parsed = JSON.parse(response.response.text());
+        const usage = response.response.usageMetadata;
+        generation?.end({
+          output: parsed,
+          usage: {
+            input: usage?.promptTokenCount,
+            output: usage?.candidatesTokenCount,
+            total: usage?.totalTokenCount,
+          },
+        });
+        return parsed;
+      } catch (err) {
+        generation?.end({ level: 'ERROR', statusMessage: err.message });
+        throw err;
+      }
     });
 
     const errors = validateScreening(result);
@@ -107,7 +130,7 @@ export async function generateStructured(prompt, schema, apiKey = null) {
     if (attempt === MAX_VALIDATION_RETRIES) {
       throw new Error(`Structured output failed validation after ${MAX_VALIDATION_RETRIES + 1} attempts: ${errors.join('; ')}`);
     }
-    // Loop to retry with the same prompt — Gemini re-generates against the schema
+    // Loop to retry — Gemini re-generates against the schema
   }
 }
 
