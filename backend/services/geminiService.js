@@ -55,6 +55,62 @@ export async function generate(prompt, trace = null, spanName = 'gemini.generate
   });
 }
 
+/**
+ * Validate that a parsed screening result has the expected shape.
+ * Returns an array of error strings (empty = valid).
+ */
+function validateScreening(obj) {
+  const errors = [];
+  if (typeof obj.name !== 'string') errors.push('name must be string');
+  if (typeof obj.score !== 'number' || obj.score < 0 || obj.score > 100) errors.push('score must be integer 0-100');
+  if (typeof obj.summary !== 'string') errors.push('summary must be string');
+  if (!Array.isArray(obj.strengths)) errors.push('strengths must be array');
+  if (!Array.isArray(obj.gaps)) errors.push('gaps must be array');
+  if (!Array.isArray(obj.topSkills)) errors.push('topSkills must be array');
+  if (typeof obj.yearsOfExperience !== 'number') errors.push('yearsOfExperience must be integer');
+  const validRecs = ['Strong hire', 'Good candidate', 'Not a fit', 'Review manually'];
+  if (!validRecs.includes(obj.recommendation)) errors.push(`recommendation must be one of: ${validRecs.join(', ')}`);
+  return errors;
+}
+
+/**
+ * Call Gemini with structured JSON output enforced via responseMimeType + responseSchema.
+ * Includes a separate schema-validation retry loop (up to 2 retries) distinct from
+ * the 503/429 retry logic in withRetry().
+ *
+ * @param {string} prompt
+ * @param {object} schema  - Gemini responseSchema object
+ * @param {string|null} apiKey
+ * @returns {Promise<object>} Parsed, validated JSON object
+ */
+export async function generateStructured(prompt, schema, apiKey = null) {
+  const MAX_VALIDATION_RETRIES = 2;
+
+  for (let attempt = 0; attempt <= MAX_VALIDATION_RETRIES; attempt++) {
+    const result = await withRetry(async () => {
+      const client = getClient(apiKey);
+      const model = client.getGenerativeModel({
+        model: 'gemini-2.5-flash',
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: schema,
+        },
+      });
+      const response = await model.generateContent(prompt);
+      return JSON.parse(response.response.text());
+    });
+
+    const errors = validateScreening(result);
+    if (errors.length === 0) return result;
+
+    console.warn(`[Gemini] Structured output validation failed (attempt ${attempt + 1}): ${errors.join('; ')}`);
+    if (attempt === MAX_VALIDATION_RETRIES) {
+      throw new Error(`Structured output failed validation after ${MAX_VALIDATION_RETRIES + 1} attempts: ${errors.join('; ')}`);
+    }
+    // Loop to retry with the same prompt — Gemini re-generates against the schema
+  }
+}
+
 export async function generateWithWebSearch(prompt, trace = null, apiKey = null) {
   return withRetry(async () => {
     const model = getClient(apiKey).getGenerativeModel({

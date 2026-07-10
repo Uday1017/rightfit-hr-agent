@@ -4,9 +4,26 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { extractTextFromPDF, extractTextFromTxt } from '../services/ocrService.js';
-import { generate } from '../services/geminiService.js';
+import { generateStructured } from '../services/geminiService.js';
 import { cleanText } from '../utils/helpers.js';
 import Session from '../models/Session.js';
+import { hashResumeText, getCachedScreening, setCachedScreening } from '../utils/resumeHashCache.js';
+
+// Gemini responseSchema — enforces structured output without regex cleaning
+const screeningSchema = {
+  type: 'object',
+  properties: {
+    name:              { type: 'string' },
+    score:             { type: 'integer', minimum: 0, maximum: 100 },
+    summary:           { type: 'string' },
+    strengths:         { type: 'array', items: { type: 'string' } },
+    gaps:              { type: 'array', items: { type: 'string' } },
+    recommendation:    { type: 'string', enum: ['Strong hire', 'Good candidate', 'Not a fit', 'Review manually'] },
+    yearsOfExperience: { type: 'integer' },
+    topSkills:         { type: 'array', items: { type: 'string' } },
+  },
+  required: ['name', 'score', 'summary', 'strengths', 'gaps', 'recommendation', 'yearsOfExperience', 'topSkills'],
+};
 
 const connection = new IORedis({
   host: process.env.REDIS_HOST || 'localhost',
@@ -28,6 +45,34 @@ export const worker = new Worker('resume-processing', async (job) => {
   const text = cleanText(rawText);
   await job.updateProgress(40);
 
+  // Compute SHA256 of the cleaned text — identical content = same hash
+  const contentHash = hashResumeText(text);
+  console.log(`[Worker] Content hash: ${contentHash.slice(0, 12)}… (${originalName})`);
+
+  // Check cache before hitting the AI pipeline
+  const cachedScreening = await getCachedScreening(contentHash, jobDescription);
+  if (cachedScreening) {
+    console.log(`[Worker] DEDUP HIT — reusing cached screening for ${originalName}`);
+    await job.updateProgress(80);
+
+    let session = await Session.findOne({ sessionId });
+    if (!session) {
+      session = new Session({ sessionId, userId, jobDescription, resumes: [], messages: [] });
+    }
+    const resumeDoc = { id: uuidv4(), filename: originalName, text, contentHash, screening: cachedScreening };
+    const existingIndex = session.resumes.findIndex(r => r.filename === originalName);
+    if (existingIndex >= 0) {
+      session.resumes[existingIndex] = resumeDoc;
+    } else {
+      session.resumes.push(resumeDoc);
+    }
+    await session.save();
+    try { fs.unlinkSync(filePath); } catch {}
+    await job.updateProgress(100);
+    console.log(`[Worker] Done (cached): ${originalName}`);
+    return { id: resumeDoc.id, filename: originalName, screening: cachedScreening };
+  }
+
   let screening = {
     name: originalName,
     score: 0,
@@ -48,21 +93,11 @@ ${jobDescription}
 RESUME:
 ${text.slice(0, 3000)}
 
-Return ONLY a valid JSON object, no markdown:
-{
-  "name": "candidate full name",
-  "score": 75,
-  "summary": "2 sentence summary",
-  "strengths": ["strength 1", "strength 2"],
-  "gaps": ["gap 1", "gap 2"],
-  "recommendation": "Strong hire",
-  "yearsOfExperience": 3,
-  "topSkills": ["skill1", "skill2", "skill3"]
-}`;
+Evaluate the candidate and return a structured screening result.`;
 
-    const raw = await generate(prompt, null, 'screening', geminiApiKey);
-    screening = JSON.parse(raw.replace(/```json|```/g, '').trim());
+    screening = await generateStructured(prompt, screeningSchema, geminiApiKey);
     console.log(`[Worker] Screened: ${screening.name} — ${screening.score}/100`);
+    await setCachedScreening(contentHash, jobDescription, screening);
   }
 
   await job.updateProgress(80);
@@ -72,7 +107,7 @@ Return ONLY a valid JSON object, no markdown:
     session = new Session({ sessionId, userId, jobDescription, resumes: [], messages: [] });
   }
 
-  const resumeDoc = { id: uuidv4(), filename: originalName, text, screening };
+  const resumeDoc = { id: uuidv4(), filename: originalName, text, contentHash, screening };
   const existingIndex = session.resumes.findIndex(r => r.filename === originalName);
   if (existingIndex >= 0) {
     session.resumes[existingIndex] = resumeDoc;

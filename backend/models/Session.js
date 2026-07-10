@@ -4,6 +4,7 @@ const resumeSchema = new mongoose.Schema({
   id: String,
   filename: String,
   text: String,
+  contentHash: { type: String, index: true }, // SHA256 of cleaned extracted text
   parsed: { type: mongoose.Schema.Types.Mixed, default: null },
   screening: {
     name: String,

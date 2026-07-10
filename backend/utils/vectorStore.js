@@ -3,7 +3,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 const COLLECTION = 'resumes';
 
-const client = new QdrantClient({ url: process.env.QDRANT_URL || 'http://localhost:6333' });
+const client = new QdrantClient({
+  url: process.env.QDRANT_URL || 'http://localhost:6333',
+  checkCompatibility: false,
+});
 
 async function ensureCollection(vectorSize) {
   const { collections } = await client.getCollections();
