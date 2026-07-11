@@ -4,13 +4,20 @@ services:
     restart: unless-stopped
     volumes:
       - mongo_data:/data/db
-    # no host port — only reachable inside Docker network
 
   qdrant:
     image: qdrant/qdrant
     restart: unless-stopped
     volumes:
       - qdrant_data:/qdrant/storage
+
+  redis:
+    image: redis:7-alpine
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
     # no host port — only reachable inside Docker network
 
   backend:
@@ -19,14 +26,28 @@ services:
     depends_on:
       - mongo
       - qdrant
+      - redis
     ports:
       - "5001:5001"
     environment:
       PORT: 5001
       MONGODB_URI: mongodb://mongo:27017/rightfit
       QDRANT_URL: http://qdrant:6333
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      COMPANY_NAME: ${COMPANY_NAME:-RightFit}
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+      LANGFUSE_HOST: ${LANGFUSE_HOST:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+      COMPANY_NAME: ${COMPANY_NAME:-RightFit}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
       LANGFUSE_HOST: ${LANGFUSE_HOST:-}
@@ -42,3 +63,4 @@ services:
 volumes:
   mongo_data:
   qdrant_data:
+  redis_data:
