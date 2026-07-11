@@ -47,20 +47,12 @@ export default function Dashboard() {
   async function handleNewSession(e) {
     e.preventDefault();
     const title = newTitle.trim() || 'Untitled Session';
-    setCreating(true);
-    setCreateError('');
-    try {
-      const res = await createSession({ title });
-      const { sessionId: newId } = res.data;
-      switchSession(newId);
-      setSessions(prev => [{ sessionId: newId, title, createdAt: new Date() }, ...prev]);
-      setNewTitle('');
-      setShowNewModal(false);
-    } catch (err) {
-      setCreateError(err.response?.data?.error || 'Failed to create session. Is the backend running?');
-    } finally {
-      setCreating(false);
-    }
+    const res = await createSession({ title });
+    const { sessionId: newId } = res.data;
+    switchSession(newId);
+    setSessions(prev => [{ sessionId: newId, title, createdAt: new Date() }, ...prev]);
+    setNewTitle('');
+    setShowNewModal(false);
   }
 
   const handleSelectionChange = (candidateId) => {
@@ -169,22 +161,13 @@ export default function Dashboard() {
                 placeholder="e.g. Frontend Hiring, AI Engineer..."
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
-                disabled={creating}
               />
-              {createError && (
-                <p className="text-red-400 text-xs">{createError}</p>
-              )}
               <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white py-2 rounded-xl text-sm font-semibold transition-all">
-                  {creating ? 'Creating...' : 'Create'}
+                <button type="submit"
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-xl text-sm font-semibold transition-all">
+                  Create
                 </button>
-                <button
-                  type="button"
-                  disabled={creating}
-                  onClick={() => { setShowNewModal(false); setNewTitle(''); setCreateError(''); }}
+                <button type="button" onClick={() => { setShowNewModal(false); setNewTitle(''); }}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-400 py-2 rounded-xl text-sm transition-all">
                   Cancel
                 </button>
