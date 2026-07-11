@@ -45,8 +45,8 @@ MongoDB Atlas      Qdrant Cloud    Redis Cloud
 ### MongoDB Atlas
 - **Provider:** MongoDB Atlas (Free M0 tier)
 - **Project:** RightFit
-- **Cluster:** rightfit-prod
-- **Region:** AWS ap-south-2 (Hyderabad)
+- **Cluster:** <your-cluster-name>
+- **Region:** Your preferred AWS region
 - **Database:** rightfit
 - **Collections:** sessions, users
 - **Network Access:** 0.0.0.0/0 (all IPs allowed)
@@ -54,15 +54,14 @@ MongoDB Atlas      Qdrant Cloud    Redis Cloud
 
 ### Qdrant Cloud
 - **Provider:** Qdrant Cloud (Free tier)
-- **Cluster:** rightfit-prod
+- **Cluster:** <your-cluster-name>
 - **Region:** AWS us-east-1
 - **Collection:** resumes (created automatically on first upload)
 - **Dashboard:** https://cloud.qdrant.io
 
 ### Redis Cloud
 - **Provider:** Redis Cloud (Free tier — 30MB)
-- **Database:** rightfit-prod
-- **Database ID:** 14458178
+- **Database:** <your-database-name>
 - **Region:** AWS us-east-1
 - **Used for:** BullMQ job queue, content hash dedup cache, circuit breaker state
 - **Dashboard:** https://app.redislabs.com
@@ -75,13 +74,13 @@ MongoDB Atlas      Qdrant Cloud    Redis Cloud
 
 ```
 Railway Project (zonal-intuition)
-├── Service 1: rightfit-hr-agent (backend)
+├── Service 1: backend
 │   ├── Builder: Dockerfile
 │   ├── Dockerfile path: /backend/Dockerfile
 │   ├── Root directory: backend
 │   ├── Port: 5001
 │   └── Region: US West (sfo)
-└── Service 2: frontend (frontend)
+└── Service 2: frontend 
     ├── Builder: Dockerfile
     ├── Dockerfile path: /frontend/Dockerfile
     ├── Root directory: frontend
@@ -96,10 +95,10 @@ Set these in Railway → backend service → Variables:
 ```
 PORT=5001
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://<user>:<password>@rightfit-prod.me4hsyv.mongodb.net/rightfit?appName=rightfit-prod
-QDRANT_URL=https://c2832d6c-7098-471a-8367-cd884909b06d.us-east-1-1.aws.cloud.qdrant.io
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/<database>
+QDRANT_URL=https://your-qdrant-instance-url
 QDRANT_API_KEY=<your-qdrant-api-key>
-REDIS_HOST=joyful-placid-pen-83092.db.redis.io
+REDIS_HOST=your-redis-host
 REDIS_PORT=10776
 REDIS_PASSWORD=<your-redis-password>
 GEMINI_API_KEY=<your-gemini-api-key>
@@ -254,7 +253,7 @@ Railway automatically picks up the push and redeploys within 2-3 minutes.
 ### Health Check
 
 ```bash
-curl https://rightfit-hr-agent-production.up.railway.app/api/health
+curl https://your-backend.up.railway.app/api/health
 # Returns: {"status":"ok","model":"gemini-2.5-flash"}
 ```
 
@@ -332,7 +331,7 @@ Check Railway deploy logs for the error. Most common causes:
 ## Security Notes
 
 - Never commit `.env` files to GitHub — all secrets are in Railway Variables
-- MongoDB Atlas network access is set to `0.0.0.0/0` for Railway compatibility — restrict to Railway's IP range for stricter security
+- Ensure your MongoDB Atlas network access allows connections from your deployment platform. Restrict access whenever possible.
 - JWT secret should be a random string of at least 32 characters
 - Gmail App Password is used instead of your actual Gmail password
 - Qdrant API key restricts access to your vector database
