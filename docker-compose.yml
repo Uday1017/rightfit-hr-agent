@@ -13,12 +13,9 @@ services:
 
   redis:
     image: redis:7-alpine
-  redis:
-    image: redis:7-alpine
     restart: unless-stopped
     volumes:
       - redis_data:/data
-    # no host port — only reachable inside Docker network
 
   backend:
     build: ./backend
@@ -39,14 +36,6 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASS: ${EMAIL_PASS:-}
-      COMPANY_NAME: ${COMPANY_NAME:-RightFit}
-      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
-      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
-      LANGFUSE_HOST: ${LANGFUSE_HOST:-}
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      JWT_SECRET: ${JWT_SECRET}
-      EMAIL_USER: ${EMAIL_USER}
-      EMAIL_PASS: ${EMAIL_PASS}
       COMPANY_NAME: ${COMPANY_NAME:-RightFit}
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
