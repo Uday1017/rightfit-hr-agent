@@ -31,6 +31,8 @@ RightFit replaces manual resume screening with an AI agent that reads, understan
 
 ---
 
+>  **[Full Deployment Guide →](DEPLOYMENT.md)**
+
 ## Features
 
 **Agentic OCR**
