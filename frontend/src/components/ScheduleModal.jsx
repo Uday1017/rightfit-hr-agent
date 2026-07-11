@@ -75,7 +75,7 @@ export default function ScheduleModal({ candidate, onClose }) {
                   placeholder="candidate@email.com" value={form.candidateEmail}
                   onChange={e => update('candidateEmail', e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Interview Date *</label>
                   <input type="date" className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-indigo-500"

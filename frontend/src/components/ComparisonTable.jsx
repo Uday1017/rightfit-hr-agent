@@ -36,12 +36,12 @@ export default function ComparisonTable({ comparison, candidates, loading = fals
         </div>
       )}
 
-      {/* Comparison Table */}
-      <div className="overflow-x-auto">
+      {/* Desktop: full table — hidden on mobile */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-gray-700">
-              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-300 bg-gray-900/50">Category</th>
+              <th className="text-left py-3 px-4 text-sm font-semibold text-gray-300 bg-gray-900/50 w-32">Category</th>
               {candidates.map((c, i) => (
                 <th key={i} className="text-left py-3 px-4 text-sm font-semibold text-white bg-gray-900/50">
                   <div>{c.name}</div>
@@ -56,26 +56,21 @@ export default function ComparisonTable({ comparison, candidates, loading = fals
                 <td className="py-4 px-4 text-sm font-medium text-indigo-300 bg-gray-900/20">
                   <button
                     onClick={() => toggleExpand(rowIdx)}
-                    className="flex items-center gap-2 hover:text-indigo-200 transition-colors"
+                    className="flex items-center gap-2 hover:text-indigo-200 transition-colors text-left touch-manipulation"
                   >
-                    <span className={`transform transition-transform ${expanded[rowIdx] ? 'rotate-90' : ''}`}>▶</span>
+                    <span className={`transform transition-transform inline-block ${expanded[rowIdx] ? 'rotate-90' : ''}`}>▶</span>
                     {row.category}
                   </button>
                 </td>
-
                 {candidates.map((c, colIdx) => {
                   const cellKey = `candidate${colIdx + 1}`;
                   const cellValue = row[cellKey] || '—';
-                  const isExpanded = expanded[rowIdx];
-
                   return (
                     <td
                       key={colIdx}
-                      className={`py-4 px-4 text-sm text-gray-300 ${
-                        colIdx % 2 === 0 ? 'bg-gray-900/10' : 'bg-gray-900/5'
-                      }`}
+                      className={`py-4 px-4 text-sm text-gray-300 ${colIdx % 2 === 0 ? 'bg-gray-900/10' : 'bg-gray-900/5'}`}
                     >
-                      <div className={`${!isExpanded ? 'line-clamp-2' : ''}`}>
+                      <div className={`${!expanded[rowIdx] ? 'line-clamp-2' : ''}`}>
                         {cellValue}
                       </div>
                     </td>
@@ -85,6 +80,50 @@ export default function ComparisonTable({ comparison, candidates, loading = fals
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile: card-per-category layout */}
+      <div className="sm:hidden space-y-3">
+        {comparison.comparison.map((row, rowIdx) => (
+          <div key={rowIdx} className="bg-gray-900/30 border border-gray-800 rounded-xl overflow-hidden">
+            <button
+              onClick={() => toggleExpand(rowIdx)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left touch-manipulation"
+            >
+              <span className="text-sm font-semibold text-indigo-300">{row.category}</span>
+              <span className={`text-gray-500 text-xs transform transition-transform inline-block ${expanded[rowIdx] ? 'rotate-90' : ''}`}>▶</span>
+            </button>
+            {expanded[rowIdx] && (
+              <div className="border-t border-gray-800 divide-y divide-gray-800">
+                {candidates.map((c, colIdx) => {
+                  const cellKey = `candidate${colIdx + 1}`;
+                  const cellValue = row[cellKey] || '—';
+                  return (
+                    <div key={colIdx} className="px-4 py-3">
+                      <div className="text-xs text-gray-500 mb-1">{c.name}</div>
+                      <div className="text-sm text-gray-300">{cellValue}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* collapsed preview — show first candidate's value as teaser */}
+            {!expanded[rowIdx] && (
+              <div className="px-4 pb-3 flex gap-3 overflow-hidden">
+                {candidates.map((c, colIdx) => {
+                  const cellKey = `candidate${colIdx + 1}`;
+                  const cellValue = row[cellKey] || '—';
+                  return (
+                    <div key={colIdx} className="flex-1 min-w-0">
+                      <div className="text-xs text-gray-500 truncate mb-0.5">{c.name}</div>
+                      <div className="text-xs text-gray-400 line-clamp-1">{cellValue}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Candidate Score Cards */}

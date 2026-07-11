@@ -42,10 +42,10 @@ export default function ComparisonModal({ candidates, jobDescription, onClose })
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4 py-4">
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-white">Compare Candidates</h2>
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 px-0 sm:px-4 py-0 sm:py-4">
+      <div className="bg-gray-900 border border-gray-800 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-4xl max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-white">Compare Candidates</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white text-2xl transition-colors"
@@ -71,7 +71,7 @@ export default function ComparisonModal({ candidates, jobDescription, onClose })
                       checked={selected.includes(candidate.id)}
                       onChange={() => toggleSelect(candidate.id)}
                       disabled={!selected.includes(candidate.id) && selected.length >= 3}
-                      className="mt-1 w-4 h-4 accent-indigo-600 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="mt-1 w-5 h-5 accent-indigo-600 cursor-pointer touch-manipulation disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-white">{candidate.name}</div>

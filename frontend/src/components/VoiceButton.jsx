@@ -6,10 +6,13 @@ export default function VoiceButton({ onTranscript }) {
     <button
       onMouseDown={start}
       onMouseUp={stop}
-      className={`p-2 rounded-full transition-all ${listening ? "bg-red-500 animate-pulse" : "bg-gray-700 hover:bg-gray-600"}`}
+      onTouchStart={start}
+      onTouchEnd={stop}
+      className={`p-2 sm:p-2.5 rounded-full transition-all touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${listening ? "bg-red-500 animate-pulse" : "bg-gray-700 hover:bg-gray-600"}`}
       title="Hold to speak"
+      aria-label="Voice input - hold to speak"
     >
-      🎤
+      <span className="text-base sm:text-lg">🎤</span>
     </button>
   );
 }

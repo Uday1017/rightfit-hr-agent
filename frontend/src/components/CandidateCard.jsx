@@ -37,12 +37,12 @@ export default function CandidateCard({ candidate, index, onDelete, onSelectionC
         }`}
       >
         {/* Selection Checkbox */}
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 z-10">
           <input
             type="checkbox"
             checked={isSelected || false}
             onChange={handleCheckboxChange}
-            className="w-5 h-5 accent-indigo-600 cursor-pointer rounded"
+            className="w-6 h-6 sm:w-5 sm:h-5 accent-indigo-600 cursor-pointer rounded touch-manipulation"
             title="Select for comparison"
           />
         </div>
