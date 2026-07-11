@@ -34,7 +34,7 @@ MongoDB Atlas      Qdrant Cloud    Redis Cloud
 
 | Service | URL |
 |---|---|
-| Frontend | distinguished-courage-production.up.railway.app |
+| Frontend | [distinguished-courage-production.up.railway.app](https://distinguished-courage-production.up.railway.app) |
 | Backend API | https://rightfit-hr-agent-production.up.railway.app |
 | Health Check | https://rightfit-hr-agent-production.up.railway.app/api/health |
 
